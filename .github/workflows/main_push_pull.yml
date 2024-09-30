@@ -90,7 +90,7 @@ jobs:
         run: |
           {
             echo 'tf_plan_output<<EOF'
-            cat task1/plan.txt
+            cat plan.txt
             echo EOF
           } >> "$GITHUB_OUTPUT"
 
