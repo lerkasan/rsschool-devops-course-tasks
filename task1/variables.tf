@@ -30,7 +30,7 @@ variable "github_repo" {
   type        = string
 }
 
-variable "github_actions_role" {
+variable "github_actions_role_name" {
   description = "Name for GitHub Actions role"
   type        = string
 }

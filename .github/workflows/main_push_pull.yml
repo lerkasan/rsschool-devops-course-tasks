@@ -16,7 +16,7 @@ env:
   TF_VAR_environment: ${{ vars.ENVIRONMENT }}
   TF_VAR_bucket_name: ${{ secrets.BUCKET_NAME }}
   TF_VAR_github_repo: ${{ secrets.REPO_NAME }}
-  TF_VAR_github_actions_role: ${{ secrets.IAM_ROLE }}
+  TF_VAR_github_actions_role_name: ${{ secrets.IAM_ROLE }}
   TF_VAR_github_actions_role_permissions: ${{ secrets.ROLE_PERMISSIONS }}
 
 jobs:
