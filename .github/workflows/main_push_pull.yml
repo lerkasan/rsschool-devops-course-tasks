@@ -47,16 +47,13 @@ jobs:
           terraform_version: 1.9.6
 
       - name: Terraform init
-        run: |
-          terraform -chdir=task1 init
+        run: terraform -chdir=task1 init
 
       - name: Terraform format
-        run: |
-          terraform -chdir=task1 fmt -check
+        run: terraform -chdir=task1 fmt -check
 
       - name: Terraform validate
-        run: |
-          terraform -chdir=task1 validate -no-color
+        run: terraform -chdir=task1 validate -no-color
 
   terraform-plan:
     name: Plan infrastructure
@@ -82,8 +79,7 @@ jobs:
           terraform_version: 1.9.6
 
       - name: Terraform init
-        run: |
-          terraform -chdir=task1 init
+        run: terraform -chdir=task1 init
 
       - name: Terraform plan Infrastructure
         run: terraform -chdir=task1 plan -no-color -input=false -out=plan.tfplan
@@ -147,14 +143,13 @@ jobs:
           terraform_version: 1.9.6
 
       - name: Terraform init
-        run: |
-          terraform -chdir=task1 init
+        run: terraform -chdir=task1 init
 
       - name: Downoad Terraform Plan as Artifact
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan.tfplan
-          path: task1/plan.tfplan
+          path: task1
 
       - name: Terraform apply Infrastructure
         run: terraform -chdir=task1 apply -auto-approve -input=false plan.tfplan
