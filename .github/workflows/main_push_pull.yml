@@ -1,0 +1,149 @@
+name: CI/CD GreenCity Infrastructure
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# for debugging purposes
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ vars.REGION }}
+  TF_VAR_region: ${{ vars.REGION }}
+  TF_VAR_project_name: ${{ vars.PROJECT_NAME }}
+  TF_VAR_environment: ${{ vars.ENVIRONMENT}}
+  TF_VAR_bucket_name: ${{ secrets.BUCKET_NAME }}
+  TF_VAR_github_repo: ${{ secrets.REPO_NAME }}
+  TF_VAR_github_actions_role: ${{ secrets.IAM_ROLE }}
+  TF_VAR_github_actions_role_permissions: ${{ secrets.ROLE_PERMISSIONS }}
+
+jobs:
+
+  terraform-check:
+    name: Check and validate infrastructure code
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.6
+
+      - name: Terraform init
+        run: |
+          terraform init
+
+      - name: Terraform format
+        run: |
+          terraform fmt -check
+
+      - name: Terraform validate
+        run: |
+          terraform validate -no-color
+
+  terraform-plan:
+    name: Plan infrastructure
+    needs: terraform-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # For GitHub OIDC Token
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
+          role-session-name: RS-task1-plan
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.6
+
+      - name: Terraform init
+        run: |
+          terraform init
+
+      - name: Terraform plan Infrastructure
+        run: terraform plan -no-color -input=false -out=plan.tfplan
+
+      - name: Save Terraform Plan Output to a File
+        run: terraform show -no-color tfplan > plan.txt
+
+      - name: Save Terraform Plan as GitHub output
+        id: get_tf_plan
+        run: |
+          {
+            echo 'tf_plan_output<<EOF'
+            cat plan.txt
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+        if: github.event_name == 'pull_request'
+
+      - name: Comment PR with Terraform Plan output
+        uses: actions/github-script@v7
+        env:
+          TF_PLAN_OUTPUT: ${{ steps.get_tf_plan.outputs.tf_plan_output }}
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: process.env.TF_PLAN_OUTPUT
+            })
+        if: github.event_name == 'pull_request'
+
+      - name: Upload Terraform Plan as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan.tfplan
+          path: plan.tfplan
+
+  terraform-apply:
+    name: Provision infrastructure
+    needs: 
+      - terraform-check
+      - terraform-plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write       # For GitHub OIDC Token
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
+          role-session-name: RS-task1-apply
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.6
+
+      - name: Terraform init
+        run: |
+          terraform init
+
+      - name: Downoad Terraform Plan as Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan.tfplan
+          path: plan.tfplan
+
+      - name: Terraform apply Infrastructure
+        run: terraform apply -auto-approve -input=false plan.tfplan
