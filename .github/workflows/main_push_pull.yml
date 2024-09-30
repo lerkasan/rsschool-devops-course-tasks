@@ -37,15 +37,15 @@ jobs:
 
       - name: Terraform init
         run: |
-          terraform init
+          terraform -chdir=task1 init
 
       - name: Terraform format
         run: |
-          terraform fmt -check
+          terraform -chdir=task1 fmt -check
 
       - name: Terraform validate
         run: |
-          terraform validate -no-color
+          terraform -chdir=task1 validate -no-color
 
   terraform-plan:
     name: Plan infrastructure
@@ -72,10 +72,10 @@ jobs:
 
       - name: Terraform init
         run: |
-          terraform init
+          terraform -chdir=task1 init
 
       - name: Terraform plan Infrastructure
-        run: terraform plan -no-color -input=false -out=plan.tfplan
+        run: terraform -chdir=task1 plan -no-color -input=false -out=plan.tfplan
 
       - name: Save Terraform Plan Output to a File
         run: terraform show -no-color plan.tfplan > plan.txt
@@ -137,7 +137,7 @@ jobs:
 
       - name: Terraform init
         run: |
-          terraform init
+          terraform -chdir=task1 init
 
       - name: Downoad Terraform Plan as Artifact
         uses: actions/download-artifact@v4
@@ -146,4 +146,4 @@ jobs:
           path: plan.tfplan
 
       - name: Terraform apply Infrastructure
-        run: terraform apply -auto-approve -input=false plan.tfplan
+        run: terraform -chdir=task1 apply -auto-approve -input=false plan.tfplan
