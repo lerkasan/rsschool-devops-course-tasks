@@ -89,14 +89,14 @@ jobs:
         run: terraform -chdir=task1 plan -no-color -input=false -out=plan.tfplan
 
       - name: Save Terraform Plan Output to a File
-        run: terraform show -no-color task1/plan.tfplan > plan.txt
+        run: terraform -chdir=task1 show -no-color plan.tfplan > plan.txt
 
       - name: Save Terraform Plan as GitHub output
         id: get_tf_plan
         run: |
           {
             echo 'tf_plan_output<<EOF'
-            cat plan.txt
+            cat task1/plan.txt
             echo EOF
           } >> "$GITHUB_OUTPUT"
         if: github.event_name == 'pull_request'
