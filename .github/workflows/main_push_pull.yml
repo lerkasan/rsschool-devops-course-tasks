@@ -30,6 +30,13 @@ jobs:
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4
 
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
+          role-session-name: RS-task1-terraform-check
+          aws-region: ${{ env.AWS_REGION }}
+
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
         with:
@@ -62,7 +69,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
-          role-session-name: RS-task1-plan
+          role-session-name: RS-task1-terraform-plan
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform with specified version on the runner
@@ -127,7 +134,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
-          role-session-name: RS-task1-apply
+          role-session-name: RS-task1-terraform-apply
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Setup Terraform with specified version on the runner
