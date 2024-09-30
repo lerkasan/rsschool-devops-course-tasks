@@ -1,4 +1,4 @@
-name: CI/CD GreenCity Infrastructure
+name: Task 1
 
 on:
   push:
@@ -7,9 +7,6 @@ on:
   pull_request:
     branches:
       - main
-
-# for debugging purposes
-  workflow_dispatch:
 
 env:
   AWS_REGION: ${{ vars.REGION }}
@@ -29,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write       # For GitHub OIDC Token
+      id-token: write
     steps:
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4
@@ -61,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write       # For GitHub OIDC Token
+      id-token: write
     steps:
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4
@@ -89,15 +86,16 @@ jobs:
 
       - name: Save Terraform Plan as GitHub output
         id: get_tf_plan
+        if: github.event_name == 'pull_request'
         run: |
           {
             echo 'tf_plan_output<<EOF'
             cat task1/plan.txt
             echo EOF
           } >> "$GITHUB_OUTPUT"
-        if: github.event_name == 'pull_request'
 
       - name: Comment PR with Terraform Plan output
+        if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         env:
           TF_PLAN_OUTPUT: ${{ steps.get_tf_plan.outputs.tf_plan_output }}
@@ -109,7 +107,6 @@ jobs:
               repo: context.repo.repo,
               body: process.env.TF_PLAN_OUTPUT
             })
-        if: github.event_name == 'pull_request'
 
       - name: Upload Terraform Plan as Artifact
         uses: actions/upload-artifact@v4
@@ -119,13 +116,14 @@ jobs:
 
   terraform-apply:
     name: Provision infrastructure
+    if: github.event_name == 'push'
     needs: 
       - terraform-check
       - terraform-plan
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write       # For GitHub OIDC Token
+      id-token: write
     steps:
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4

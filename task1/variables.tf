@@ -22,6 +22,7 @@ variable "environment" {
 variable "bucket_name" {
   description = "Bucket name for project tfstate"
   type        = string
+  sensitive   = true
 }
 
 variable "github_repo" {
@@ -36,5 +37,5 @@ variable "github_actions_role" {
 
 variable "github_actions_role_permissions" {
   description = "List of permissions for Github Actions role"
-  type        = list(string)
+  type        = set(string)
 }
