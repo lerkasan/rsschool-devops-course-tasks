@@ -40,10 +40,10 @@ resource "aws_route_table" "private" {
 module "private_subnet" {
   for_each = toset(var.private_subnets)
 
-  source              = "./modules/subnet"
-  is_public           = false
-  vpc_id              = aws_vpc.this.id
-  route_table_id      = aws_route_table.private.id
-  subnet_cidr         = each.value
-  az                  = local.availability_zones[index(var.private_subnets, each.value)]
+  source         = "./modules/subnet"
+  is_public      = false
+  vpc_id         = aws_vpc.this.id
+  route_table_id = aws_route_table.private.id
+  subnet_cidr    = each.value
+  az             = local.availability_zones[index(var.private_subnets, each.value)]
 }

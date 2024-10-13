@@ -28,10 +28,10 @@ resource "aws_route_table" "public" {
 module "public_subnet" {
   for_each = toset(var.public_subnets)
 
-  source              = "./modules/subnet"
-  is_public           = true
-  vpc_id              = aws_vpc.this.id
-  route_table_id      = aws_route_table.public.id
-  subnet_cidr         = each.value
-  az                  = local.availability_zones[index(var.public_subnets, each.value)]
+  source         = "./modules/subnet"
+  is_public      = true
+  vpc_id         = aws_vpc.this.id
+  route_table_id = aws_route_table.public.id
+  subnet_cidr    = each.value
+  az             = local.availability_zones[index(var.public_subnets, each.value)]
 }
