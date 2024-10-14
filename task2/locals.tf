@@ -6,4 +6,6 @@ locals {
   ami_name           = local.ubuntu_ami_name_filter
   ubuntu_ami_name_filter = format("%s/images/%s-ssd/%s-%s-%s-%s-%s-*", var.os, var.ami_virtualization, var.os,
   var.os_releases[var.os_version], var.os_version, var.os_architecture, var.os_product)
+  http_port  = 80
+  https_port = 443
 }

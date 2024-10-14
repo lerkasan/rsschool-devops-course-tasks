@@ -34,6 +34,36 @@ resource "aws_security_group_rule" "appserver_allow_inbound_ssh_from_bastion" {
   security_group_id        = aws_security_group.appserver.id
 }
 
+resource "aws_security_group_rule" "appserver_allow_outbound_https_to_all" {
+  type              = "egress"
+  description       = "HTTPS egress"
+  from_port         = local.https_port
+  to_port           = local.https_port
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.appserver.id
+}
+
+resource "aws_security_group_rule" "appserver_allow_outbound_http_to_all" {
+  type              = "egress"
+  description       = "HTTP egress"
+  from_port         = local.http_port
+  to_port           = local.http_port
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.appserver.id
+}
+
+resource "aws_security_group_rule" "appserver_allow_outbound_icmp_to_all" {
+  type              = "egress"
+  description       = "ICMP egress"
+  from_port         = -1
+  to_port           = -1
+  protocol          = "icmp"
+  cidr_blocks       = ["0.0.0.0/0"]
+  security_group_id = aws_security_group.appserver.id
+}
+
 resource "aws_security_group_rule" "bastion_allow_inbound_ssh_from_admin_ip" {
   type              = "ingress"
   description       = "SSH ingress"
