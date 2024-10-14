@@ -35,8 +35,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
-          role-session-name: RS-task1-terraform-check
-          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: RS-task2-terraform-check
+          aws-region: ${{ vars.REGION }}
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
@@ -44,13 +44,13 @@ jobs:
           terraform_version: 1.9.6
 
       - name: Terraform init
-        run: terraform -chdir=task1 init
+        run: terraform -chdir=task2 init
 
       - name: Terraform format
-        run: terraform -chdir=task1 fmt -check
+        run: terraform -chdir=task2 fmt -check
 
       - name: Terraform validate
-        run: terraform -chdir=task1 validate -no-color
+        run: terraform -chdir=task2 validate -no-color
 
   terraform-plan:
     name: Plan infrastructure
@@ -68,8 +68,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
-          role-session-name: RS-task1-terraform-plan
-          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: RS-task2-terraform-plan
+          aws-region: ${{ vars.REGION }}
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
@@ -77,13 +77,13 @@ jobs:
           terraform_version: 1.9.6
 
       - name: Terraform init
-        run: terraform -chdir=task1 init
+        run: terraform -chdir=task2 init
 
       - name: Terraform plan Infrastructure
-        run: terraform -chdir=task1 plan -no-color -input=false -out=plan.tfplan
+        run: terraform -chdir=task2 plan -no-color -input=false -out=plan.tfplan
 
       - name: Save Terraform Plan Output to a File
-        run: terraform -chdir=task1 show -no-color plan.tfplan > plan.txt
+        run: terraform -chdir=task2 show -no-color plan.tfplan > plan.txt
 
       - name: Save Terraform Plan as GitHub output
         id: get_tf_plan
@@ -113,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan.tfplan
-          path: task1/plan.tfplan
+          path: task2/plan.tfplan
 
   terraform-apply:
     name: Provision infrastructure
@@ -133,8 +133,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
-          role-session-name: RS-task1-terraform-apply
-          aws-region: ${{ env.AWS_REGION }}
+          role-session-name: RS-task2-terraform-apply
+          aws-region: ${{ vars.REGION }}
 
       - name: Setup Terraform with specified version on the runner
         uses: hashicorp/setup-terraform@v3
@@ -142,13 +142,13 @@ jobs:
           terraform_version: 1.9.6
 
       - name: Terraform init
-        run: terraform -chdir=task1 init
+        run: terraform -chdir=task2 init
 
       - name: Downoad Terraform Plan as Artifact
         uses: actions/download-artifact@v4
         with:
           name: terraform-plan.tfplan
-          path: task1
+          path: task2
 
       - name: Terraform apply Infrastructure
-        run: terraform -chdir=task1 apply -auto-approve -input=false plan.tfplan
+        run: terraform -chdir=task2 apply -auto-approve -input=false plan.tfplan
