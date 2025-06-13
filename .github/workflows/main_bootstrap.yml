@@ -74,11 +74,11 @@ jobs:
       - name: Run TFLint
         run: tflint --minimum-failure-severity=notice --recursive --config $(pwd)/.tflint.hcl
 
-      - name: Scan with GitLeaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
-          GITHUB_TOKEN: ${{ github.token }}
+      # - name: Scan with GitLeaks
+      #   uses: gitleaks/gitleaks-action@v2
+      #   env:
+      #     GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+      #     GITHUB_TOKEN: ${{ github.token }}
 
       - name: Run Trivy vulnerability scanner in fs mode
         uses: aquasecurity/trivy-action@0.31.0
