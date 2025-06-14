@@ -145,11 +145,10 @@ jobs:
         id: infracost_output
         if: github.event_name == 'pull_request'
         run: |
-          {
-            echo 'result<<EOF'
-            cat /tmp/infracost.json
-            echo EOF
-          } >> "$GITHUB_OUTPUT"
+          content=$(<infracost.json)
+          echo "file_output<<EOF" >> "$GITHUB_OUTPUT"
+          echo "$content" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Comment PR with Infracost output
         if: github.event_name == 'pull_request'
