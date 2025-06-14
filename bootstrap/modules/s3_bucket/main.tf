@@ -1,4 +1,7 @@
 resource "aws_s3_bucket" "this" {
+  #checkov:skip=CKV2_AWS_62:We don't need event notifications for this bucket.
+  #checkov:skip=CKV_AWS_144:We don't need cross-region replication for this bucket.
+
   bucket = var.bucket_name
   tags = var.tags
 }
@@ -11,6 +14,14 @@ resource "aws_s3_bucket_versioning" "this" {
   versioning_configuration {
     status = "Enabled"
   }
+}
+
+resource "aws_s3_bucket_logging" "this" {
+  count = var.enable_logging ? 1 : 0
+
+  bucket = aws_s3_bucket.this.id
+  target_bucket = var.logging_bucket_name
+  target_prefix = "log/"
 }
 
 resource "aws_s3_bucket_lifecycle_configuration" "this" {

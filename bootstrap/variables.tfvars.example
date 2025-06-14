@@ -4,6 +4,8 @@ s3_buckets = [{
   name                = "bucket-name-for-terraform-state"
   enable_encryption   = true
   enable_key_rotation = true
+  enable_logging      = true
+  logging_bucket_name = "bucket-name-for-storring-access-logs-to-terraform-state"
   object_ownership    = "BucketOwnerEnforced"
   versioning_status   = "Enabled"
   lifecycle_rule = {
@@ -15,11 +17,11 @@ s3_buckets = [{
   }
 }]
 
-users = [
+groups = [
   {
-    name = "name-for-iam-user"
-
-    aws_managed_policies = [
+    name                        = "name-for-iam-group"
+    path                        = "/"
+    aws_managed_policies        = [
       "AmazonEC2FullAccess",
       "AmazonRoute53FullAccess",
       "AmazonS3FullAccess",
@@ -28,9 +30,16 @@ users = [
       "AmazonSQSFullAccess",
       "AmazonEventBridgeFullAccess"
     ]
+  }
+]
+
+users = [
+  {
+    name = "name-for-iam-user"
+    group_names = [ "name-for-iam-group" ]
 
     permission_boundaries_allow = [
-      "ec2:*",                  # EC2FullAccess
+      "ec2:*",
       "elasticloadbalancing:*", # EC2FullAccess
       "cloudwatch:*",           # EC2FullAccess
       "autoscaling:*",          # EC2FullAccess

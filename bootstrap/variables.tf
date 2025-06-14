@@ -8,7 +8,7 @@ variable "region" {
 variable "users" {
   type = set(object({
     name                        = string
-    aws_managed_policies        = set(string)
+    group_names                 = set(string)
     permission_boundaries_allow = set(string)
     tags                        = optional(map(string), {})
   }))
@@ -19,8 +19,29 @@ variable "users" {
     ])
     error_message = "User name must have letters, numbers, and hyphens only)."
   }
+
+  validation {
+    condition = alltrue([
+      for user in var.users : alltrue([for group in user.group_names : can(regex("^[a-zA-Z0-9-]+$", group))])
+    ])
+    error_message = "Group names must have letters, numbers, and hyphens only)."
+  }
 }
 
+variable "groups" {
+  type = set(object({
+    name                 = string
+    path                 = optional(string, "/")
+    aws_managed_policies = set(string)
+  }))
+
+  validation {
+    condition = alltrue([
+      for group in var.groups : can(regex("^[a-zA-Z0-9-]+$", group.name))
+    ])
+    error_message = "Group name must have letters, numbers, and hyphens only)."
+  }
+}
 
 variable "oidc_roles" {
   type = set(object({
@@ -41,10 +62,12 @@ variable "oidc_roles" {
 
 variable "s3_buckets" {
   type = list(object({
-    name              = string
-    region            = optional(string)
-    enable_encryption = optional(bool, true)
-    versioning_status = optional(string, "Enabled")
+    name                = string
+    region              = optional(string)
+    enable_encryption   = optional(bool, true)
+    enable_logging      = optional(bool, true)
+    logging_bucket_name = optional(string, "")
+    versioning_status   = optional(string, "Enabled")
     lifecycle_rule = optional(object({
       status                             = optional(string, "Enabled")
       prefix                             = optional(string, "")

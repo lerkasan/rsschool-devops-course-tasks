@@ -3,10 +3,22 @@ module "s3_bucket" {
 
   source = "./modules/s3_bucket"
 
-  bucket_name       = each.value.name
-  enable_encryption = each.value.enable_encryption
-  versioning_status = each.value.versioning_status
-  lifecycle_rule    = each.value.lifecycle_rule
+  bucket_name         = each.value.name
+  enable_encryption   = each.value.enable_encryption
+  enable_logging      = each.value.enable_logging
+  logging_bucket_name = each.value.logging_bucket_name
+  versioning_status   = each.value.versioning_status
+  lifecycle_rule      = each.value.lifecycle_rule
+}
+
+module "iam_group" {
+  for_each = { for group in var.groups : group.name => group }
+
+  source = "./modules/iam_group"
+
+  group_name           = each.value.name
+  path                 = each.value.path
+  aws_managed_policies = each.value.aws_managed_policies
 }
 
 module "iam_user" {
@@ -15,9 +27,11 @@ module "iam_user" {
   source = "./modules/iam_user"
 
   user_name                   = each.value.name
+  group_names                 = each.value.group_names
   permission_boundaries_allow = each.value.permission_boundaries_allow
-  aws_managed_policies        = each.value.aws_managed_policies
   tags                        = each.value.tags
+
+  depends_on = [module.iam_group]
 }
 
 module "oidc_role" {

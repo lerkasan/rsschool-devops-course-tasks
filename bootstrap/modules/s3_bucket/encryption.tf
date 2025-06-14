@@ -1,4 +1,6 @@
 resource "aws_kms_key" "this" {
+# checkov:skip=CKV2_AWS_64:False Positive. The KMS key policy is actually created via "aws_kms_key_policy" resource.
+  
   count = var.enable_encryption ? 1 : 0
 
   description         = "KMS key for S3 encryption"
@@ -47,29 +49,29 @@ resource "aws_kms_key_policy" "this" {
         Action   = "kms:*"
         Resource = aws_kms_key.this[0].arn
       },
-      {
-        Sid    = "Allow administration of the key"
-        Effect = "Allow"
-        Principal = {
-          AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${local.iam_username}"
-        },
-        Action = [
-          "kms:ReplicateKey",
-          "kms:Create*",
-          "kms:Describe*",
-          "kms:Enable*",
-          "kms:List*",
-          "kms:Put*",
-          "kms:Update*",
-          "kms:Revoke*",
-          "kms:Disable*",
-          "kms:Get*",
-          "kms:Delete*",
-          "kms:ScheduleKeyDeletion",
-          "kms:CancelKeyDeletion"
-        ],
-        Resource = aws_kms_key.this[0].arn
-      }
+      # {
+      #   Sid    = "Allow administration of the key"
+      #   Effect = "Allow"
+      #   Principal = {
+      #     AWS = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/${local.iam_username}"  # local.iam_username would not work with the OIDC role in Github Actions
+      #   },
+      #   Action = [
+      #     "kms:ReplicateKey",
+      #     "kms:Create*",
+      #     "kms:Describe*",
+      #     "kms:Enable*",
+      #     "kms:List*",
+      #     "kms:Put*",
+      #     "kms:Update*",
+      #     "kms:Revoke*",
+      #     "kms:Disable*",
+      #     "kms:Get*",
+      #     "kms:Delete*",
+      #     "kms:ScheduleKeyDeletion",
+      #     "kms:CancelKeyDeletion"
+      #   ],
+      #   Resource = aws_kms_key.this[0].arn
+      # }
     ]
     Version = "2012-10-17"
   })

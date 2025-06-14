@@ -12,8 +12,10 @@ resource "aws_iam_policy" "this" {
 }
 
 resource "aws_iam_role_policy_attachment" "this" {
+  #checkov:skip=CKV2_AWS_56:The task #1 specifies that a new role should have IAMFullAccess policy attached, which in general is not recommended for security reasons.
+
   for_each = var.aws_managed_policies
 
   role       = aws_iam_role.this.name
-  policy_arn = join("/", ["arn:aws:iam::aws:policy", each.key])
+  policy_arn = data.aws_iam_policy.this[each.key].arn
 }

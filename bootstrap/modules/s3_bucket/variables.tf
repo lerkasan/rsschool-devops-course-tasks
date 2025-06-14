@@ -14,6 +14,22 @@ variable "enable_encryption" {
   default     = true
 }
 
+variable "enable_logging" {
+  description = "Enable access logging for the S3 bucket"
+  type        = bool
+  default     = true
+}
+
+variable "logging_bucket_name" {
+  description = "Name of S3 bucket for logging access to the main S3 bucket"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9.-]+$", var.logging_bucket_name))
+    error_message = "S3 bucket name must be a valid DNS-compliant name."
+  }
+}
+
 variable "versioning_status" {
   description = "Versioning status for the S3 bucket"
   type        = string

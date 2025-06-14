@@ -95,8 +95,6 @@ jobs:
         uses: bridgecrewio/checkov-action@v12
         with:
           directory: bootstrap
-          # Skip those checks only for the bootstrap
-          skip_check: CKV_AWS_18,CKV_AWS_40,CKV_AWS_107,CKV_AWS_109,CKV_AWS_111,CKV_AWS_144,CKV_AWS_273,CKV_AWS_356,CKV2_AWS_40,CKV2_AWS_56,CKV2_AWS_62,CKV2_AWS_64
           quiet: true
           soft_fail: false
           download_external_modules: false

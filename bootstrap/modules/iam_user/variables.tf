@@ -8,14 +8,19 @@ variable "user_name" {
   }
 }
 
-variable "permission_boundaries_allow" {
-  description = "Set of permission boundaries for IAM user"
+variable "group_names" {
+  description = "Set of IAM group names to add user to"
   type        = set(string)
   default     = []
+
+  validation {
+    condition     = alltrue([for group in var.group_names : can(regex("^[a-zA-Z0-9-]+$", group))])
+    error_message = "Group names must have letters, numbers, and hyphens only)."
+  } 
 }
 
-variable "aws_managed_policies" {
-  description = "Set of AWS managed policies to attach to IAM user"
+variable "permission_boundaries_allow" {
+  description = "Set of permission boundaries for IAM user"
   type        = set(string)
   default     = []
 }
