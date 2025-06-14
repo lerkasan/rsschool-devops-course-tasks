@@ -105,14 +105,23 @@ jobs:
         with:
           api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      # Checkout the base branch of the pull request (e.g. main/master).
+      # Generate total infrastructure cost via Infracost
+      - name: Generate total cost estimate via Infracost
+        if: github.event_name == 'push'    
+        run: |
+          infracost breakdown --path=./bootstrap \
+                              --format=table
+
+      # Checkout the base branch of the pull request (e.g. main/master)
       - name: Checkout base branch
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
         with:
           ref: '${{ github.event.pull_request.base.ref }}'
 
-      # Generate Infracost JSON file as the baseline.
+      # Generate Infracost JSON file as the baseline
       - name: Generate Infracost cost estimate baseline
+        if: github.event_name == 'pull_request'    
         run: |
           infracost breakdown --path=./bootstrap \
                               --format=json \
@@ -120,26 +129,52 @@ jobs:
 
       # Checkout the current PR branch so we can create a diff.
       - name: Checkout PR branch
+        if: github.event_name == 'pull_request'
         uses: actions/checkout@v4
 
       # Generate an Infracost diff and save it to a JSON file.
       - name: Generate Infracost diff
+        if: github.event_name == 'pull_request'
         run: |
           infracost diff --path=./bootstrap \
-                          --format=json \
+                          --format=github-comment \
                           --compare-to=/tmp/infracost-base.json \
-                          --out-file=/tmp/infracost.json
+                          --out-file=/tmp/infracost.txt
 
-      # Posts a comment to the PR using the 'update' behavior.
-      # This creates a single comment and updates it. The "quietest" option.
-      # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
-      - name: Post Infracost comment
+      - name: Save Infracost output as GitHub output
+        id: infracost_output
+        if: github.event_name == 'pull_request'
         run: |
-            infracost comment github --path=/tmp/infracost.json \
-                                     --repo=$GITHUB_REPOSITORY \
-                                     --github-token=${{ github.token }} \
-                                     --commit=${{ github.sha }} \
-                                     --behavior=new
+          {
+            echo 'result<<EOF'
+            cat /tmp/infracost.txt
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment PR with Infracost output
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          INFRACOST_OUTPUT: ${{ steps.infracost_output.outputs.result }}
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: process.env.INFRACOST_OUTPUT
+            })
+
+      # # Posts a comment to the PR using the 'update' behavior.
+      # # This creates a single comment and updates it. The "quietest" option.
+      # # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+      # - name: Post Infracost comment
+      #   run: |
+      #       infracost comment github --path=/tmp/infracost.json \
+      #                                --repo=$GITHUB_REPOSITORY \
+      #                                --github-token=${{ github.token }} \
+      #                                --commit=${{ github.sha }} \
+      #                                --behavior=new
         # run: |
         #     infracost comment github --path=/tmp/infracost.json \
         #                              --repo=$GITHUB_REPOSITORY \
