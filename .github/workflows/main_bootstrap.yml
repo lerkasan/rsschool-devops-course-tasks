@@ -111,7 +111,7 @@ jobs:
         run: |
           infracost breakdown --path=./bootstrap \
                               --format=table
-                              
+
       # Checkout the base branch of the pull request (e.g. main/master)
       - name: Checkout base branch
         if: github.event_name == 'pull_request'
@@ -137,9 +137,9 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           infracost diff --path=./bootstrap \
-                          --format=diff \
+                          --format=json \
                           --compare-to=/tmp/infracost-base.json \
-                          --out-file=/tmp/infracost.txt
+                          --out-file=/tmp/infracost.json
 
       - name: Save Infracost output as GitHub output
         id: infracost_output
@@ -147,7 +147,7 @@ jobs:
         run: |
           {
             echo 'result<<EOF'
-            cat /tmp/infracost.txt
+            cat /tmp/infracost.json
             echo EOF
           } >> "$GITHUB_OUTPUT"
 
