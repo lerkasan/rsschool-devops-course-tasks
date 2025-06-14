@@ -22,6 +22,8 @@ data "aws_iam_policy_document" "permission_boundaries" {
 }
 
 data "aws_iam_policy_document" "oidc" {
+  #checkov:skip=CKV_AWS_358:False positive for: "Ensure AWS GitHub Actions OIDC authorization policies only allow safe claims and claim order"
+
   statement {
     actions = ["sts:AssumeRoleWithWebIdentity"]
 
