@@ -145,7 +145,7 @@ jobs:
         id: infracost_output
         if: github.event_name == 'pull_request'
         run: |
-          content=$(<infracost.json)
+          content=$(</tmp/infracost.json)
           echo "file_output<<EOF" >> "$GITHUB_OUTPUT"
           echo "$content" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
