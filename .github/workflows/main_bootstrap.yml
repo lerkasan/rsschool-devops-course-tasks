@@ -28,6 +28,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      pull-requests: write
     steps:
       - name: Checkout infrastructure repository
         uses: actions/checkout@v4
@@ -141,28 +142,28 @@ jobs:
                           --compare-to=/tmp/infracost-base.json \
                           --out-file=/tmp/infracost.json
 
-      - name: Save Infracost output as GitHub output
-        id: infracost_output
-        if: github.event_name == 'pull_request'
-        run: |
-          content=$(</tmp/infracost.json)
-          echo "file_output<<EOF" >> "$GITHUB_OUTPUT"
-          echo "$content" >> "$GITHUB_OUTPUT"
-          echo "EOF" >> "$GITHUB_OUTPUT"
+      # - name: Save Infracost output as GitHub output
+      #   id: infracost_output
+      #   if: github.event_name == 'pull_request'
+      #   run: |
+      #     content=$(</tmp/infracost.json)
+      #     echo "file_output<<EOF" >> "$GITHUB_OUTPUT"
+      #     echo "$content" >> "$GITHUB_OUTPUT"
+      #     echo "EOF" >> "$GITHUB_OUTPUT"
 
-      - name: Comment PR with Infracost output
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          INFRACOST_OUTPUT: ${{ steps.infracost_output.outputs.result }}
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: process.env.INFRACOST_OUTPUT
-            })
+      # - name: Comment PR with Infracost output
+      #   if: github.event_name == 'pull_request'
+      #   uses: actions/github-script@v7
+      #   env:
+      #     INFRACOST_OUTPUT: ${{ steps.infracost_output.outputs.result }}
+      #   with:
+      #     script: |
+      #       github.rest.issues.createComment({
+      #         issue_number: context.issue.number,
+      #         owner: context.repo.owner,
+      #         repo: context.repo.repo,
+      #         body: process.env.INFRACOST_OUTPUT
+      #       })
 
       # # Posts a comment to the PR using the 'update' behavior.
       # # This creates a single comment and updates it. The "quietest" option.
@@ -174,12 +175,17 @@ jobs:
       #                                --github-token=${{ github.token }} \
       #                                --commit=${{ github.sha }} \
       #                                --behavior=new
-        # run: |
-        #     infracost comment github --path=/tmp/infracost.json \
-        #                              --repo=$GITHUB_REPOSITORY \
-        #                              --github-token=${{ github.token }} \
-        #                              --pull-request=${{ github.event.pull_request.number }} \
-        #                              --behavior=update
+
+      # Posts a comment to the PR using the 'update' behavior.
+      # This creates a single comment and updates it. The "quietest" option.
+      # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+      - name: Post Infracost comment
+        run: |
+            infracost comment github --path=/tmp/infracost.json \
+                                     --repo=$GITHUB_REPOSITORY \
+                                     --github-token=${{ github.token }} \
+                                     --pull-request=${{ github.event.pull_request.number }} \
+                                     --behavior=update
 
   terraform-plan:
     name: Plan infrastructure
