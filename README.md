@@ -1,1 +1,1 @@
-# rsschool-devops-course-tasks
+To be updated later
