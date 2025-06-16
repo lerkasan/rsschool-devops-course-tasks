@@ -1,4 +1,10 @@
-data "aws_caller_identity" "current" {}
+data "tls_certificate" "github_actions" {
+# https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
+# https://github.blog/changelog/2023-06-27-github-actions-update-on-oidc-integration-with-aws/
+# https://github.blog/changelog/2023-07-13-github-actions-oidc-integration-with-aws-no-longer-requires-pinning-of-intermediate-tls-certificates/
+# https://stackoverflow.com/a/76603055
+  url = "${local.oidc_github_actions.provider_url}/.well-known/openid-configuration"
+}
 
 data "aws_iam_policy" "this" {
   for_each = var.aws_managed_policies
@@ -21,6 +27,8 @@ data "aws_iam_policy_document" "permission_boundaries" {
   }
 }
 
+# https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-idp_oidc.html#idp_oidc_Create_GitHub
+# https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_iam-condition-keys.html#condition-keys-wif
 data "aws_iam_policy_document" "oidc" {
   #checkov:skip=CKV_AWS_358:False positive for: "Ensure AWS GitHub Actions OIDC authorization policies only allow safe claims and claim order"
 
@@ -29,19 +37,19 @@ data "aws_iam_policy_document" "oidc" {
 
     principals {
       type        = "Federated"
-      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/token.actions.githubusercontent.com"]
+      identifiers = [aws_iam_openid_connect_provider.github_actions.arn]
     }
 
     condition {
       test     = "StringEquals"
       values   = ["sts.amazonaws.com"]
-      variable = "token.actions.githubusercontent.com:aud"
+      variable = "${local.oidc_github_actions.domain_name}:aud"
     }
 
     condition {
       test     = "StringLike"
       values   = ["repo:${var.github_repo}:*"]
-      variable = "token.actions.githubusercontent.com:sub"
+      variable = "${local.oidc_github_actions.domain_name}:sub"
     }
   }
 }
