@@ -181,10 +181,10 @@ jobs:
         run: terraform -chdir=bootstrap init
 
       - name: Terraform plan Infrastructure
-        run: terraform -chdir=bootstrap plan -no-color -input=false -out=plan.tfplan
+        run: terraform -chdir=bootstrap plan -no-color -input=false -out=/tmp/terraform-plan.tfplan
 
       - name: Save Terraform Plan Output to a File
-        run: terraform -chdir=bootstrap show -no-color plan.tfplan > plan.txt
+        run: terraform -chdir=bootstrap show -no-color /tmp/terraform-plan.tfplan > plan.txt
 
       - name: Save Terraform Plan as GitHub output
         id: get_tf_plan
@@ -213,8 +213,8 @@ jobs:
       - name: Upload Terraform Plan as Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: terraform-plan.tfplan
-          path: plan.tfplan
+          name: terraform-plan
+          path: /tmp/terraform-plan.tfplan
 
   terraform-apply:
     name: Provision infrastructure
@@ -248,8 +248,10 @@ jobs:
       - name: Downoad Terraform Plan as Artifact
         uses: actions/download-artifact@v4
         with:
-          name: terraform-plan.tfplan
-          path: plan.tfplan
+          name: terraform-plan
+
+      - name: Terraform show planned changes to infrastructure
+        run: terraform show terraform-plan.tfplan
 
       - name: Terraform apply Infrastructure
-        run: terraform -chdir=bootstrap apply -auto-approve -input=false plan.tfplan
+        run: terraform apply -auto-approve -input=false terraform-plan.tfplan
