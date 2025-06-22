@@ -1,0 +1,256 @@
+name: Task 1
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'bootstrap/**'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'bootstrap/**'
+
+env:
+  AWS_REGION: ${{ vars.REGION }}
+  TF_VAR_region: ${{ vars.REGION }}
+  TF_VAR_s3_buckets: ${{ vars.S3_BUCKETS }}
+  TF_VAR_users: ${{ vars.IAM_USERS }}
+  TF_VAR_groups: ${{ vars.IAM_GROUPS }}
+  TF_VAR_oidc_roles: ${{ vars.OIDC_ROLES }}
+
+jobs:
+
+  terraform-check:
+    name: Check and validate infrastructure code
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
+          role-session-name: rsschool-devops-course-tasks
+          aws-region: ${{ vars.REGION }}
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.TERRAFORM_VERSION }}
+
+      - name: Terraform init
+        run: terraform -chdir=bootstrap init
+
+      - name: Terraform format
+        run: terraform -chdir=bootstrap fmt -check
+
+      - name: Terraform validate
+        run: terraform -chdir=bootstrap validate -no-color
+
+      - name: Cache plugin dir for TFLint
+        uses: actions/cache@v4
+        with:
+          path: ~/.tflint.d/plugins
+          key: tflint-${{ hashFiles('.tflint.hcl') }}
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: v0.58.0
+      - name: Show version
+        run: tflint --version
+  
+      - name: Init TFLint
+        run: tflint --init
+        # env:
+        #   # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
+        #   GITHUB_TOKEN: ${{ github.token }}
+  
+      - name: Run TFLint
+        run: tflint --minimum-failure-severity=notice --recursive --config $(pwd)/.tflint.hcl
+
+      # - name: Scan with GitLeaks
+      #   uses: gitleaks/gitleaks-action@v2
+      #   env:
+      #     GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+      #     GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Run Trivy vulnerability scanner in fs mode
+        uses: aquasecurity/trivy-action@0.31.0
+        with:
+          scan-type: 'config'
+          hide-progress: true
+          format: 'table'
+          exit-code: '1'
+          ignore-unfixed: false
+          severity: 'CRITICAL,HIGH,MEDIUM'
+
+      - name: Run Checkov action
+        id: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: bootstrap
+          quiet: true
+          soft_fail: false
+          download_external_modules: false
+
+  terraform-plan:
+    name: Plan infrastructure
+    needs: terraform-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
+          role-session-name: rsschool-devops-course-tasks
+          aws-region: ${{ vars.REGION }}
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.TERRAFORM_VERSION }}
+
+      - name: Terraform init
+        run: terraform -chdir=bootstrap init
+
+      - name: Terraform plan Infrastructure
+        run: terraform -chdir=bootstrap plan -no-color -input=false -out=/tmp/terraform-plan.tfplan
+
+      - name: Save Terraform Plan Output to a File
+        run: terraform -chdir=bootstrap show -no-color /tmp/terraform-plan.tfplan > plan.txt
+
+      - name: Save Terraform Plan as GitHub output
+        id: get_tf_plan
+        if: github.event_name == 'pull_request'
+        run: |
+          {
+            echo 'tf_plan_output<<EOF'
+            cat plan.txt
+            echo EOF
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Comment PR with Terraform Plan output
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          TF_PLAN_OUTPUT: ${{ steps.get_tf_plan.outputs.tf_plan_output }}
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: process.env.TF_PLAN_OUTPUT
+            })
+
+      - name: Upload Terraform Plan as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan
+          path: /tmp/terraform-plan.tfplan
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ secrets.INFRACOST_API_KEY }}
+
+      # Generate total infrastructure cost via Infracost
+      - name: Generate total cost estimate via Infracost
+        if: github.event_name == 'push'    
+        run: |
+          infracost breakdown --path=./bootstrap \
+                              --format=table
+
+      # Checkout the base branch of the pull request (e.g. main/master)
+      - name: Checkout base branch
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: '${{ github.event.pull_request.base.ref }}'
+
+      # Generate Infracost JSON file as the baseline
+      - name: Generate Infracost cost estimate baseline
+        if: github.event_name == 'pull_request'    
+        run: |
+          infracost breakdown --path=./bootstrap \
+                              --format=json \
+                              --out-file=/tmp/infracost-base.json
+
+      # Checkout the current PR branch so we can create a diff.
+      - name: Checkout PR branch
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+
+      # Generate an Infracost diff and save it to a JSON file.
+      - name: Generate Infracost diff
+        if: github.event_name == 'pull_request'
+        run: |
+          infracost diff --path=./bootstrap \
+                          --format=json \
+                          --compare-to=/tmp/infracost-base.json \
+                          --out-file=/tmp/infracost.json
+
+      # Posts a comment to the PR using the 'update' behavior.
+      # This creates a single comment and updates it. The "quietest" option.
+      # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+      - name: Post Infracost comment
+        run: |
+            infracost comment github --path=/tmp/infracost.json \
+                                     --repo=$GITHUB_REPOSITORY \
+                                     --github-token=${{ github.token }} \
+                                     --pull-request=${{ github.event.pull_request.number }} \
+                                     --behavior=update
+
+  terraform-apply:
+    name: Provision infrastructure
+    if: github.event_name == 'push'
+    needs: 
+      - terraform-check
+      - terraform-plan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.TERRAFORM_ROLE }}
+          role-session-name: rsschool-devops-course-tasks
+          aws-region: ${{ vars.REGION }}
+
+      - name: Setup Terraform with specified version on the runner
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ vars.TERRAFORM_VERSION }}
+
+      - name: Terraform init
+        run: terraform -chdir=bootstrap init
+
+      - name: Downoad Terraform Plan as Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-plan
+
+      - name: Terraform show planned changes to infrastructure
+        run: terraform show terraform-plan.tfplan
+
+      - name: Terraform apply Infrastructure
+        run: terraform apply -auto-approve -input=false terraform-plan.tfplan

@@ -1,0 +1,104 @@
+region = "us-east-1"
+
+s3_buckets = [{
+  name                = "bucket-name-for-terraform-state"
+  enable_encryption   = true
+  enable_key_rotation = true
+  enable_logging      = true
+  logging_bucket_name = "bucket-name-for-storring-access-logs-to-terraform-state"
+  object_ownership    = "BucketOwnerEnforced"
+  versioning_status   = "Enabled"
+  lifecycle_rule = {
+    status                             = "Enabled"
+    prefix                             = ""
+    expiration_days                    = 0
+    noncurrent_version_expiration_days = 90
+    noncurrent_version_transition_days = 30
+  }
+}]
+
+groups = [
+  {
+    name                        = "name-for-iam-group"
+    path                        = "/"
+    aws_managed_policies        = [
+      "AmazonEC2FullAccess",
+      "AmazonRoute53FullAccess",
+      "AmazonS3FullAccess",
+      "IAMFullAccess",
+      "AmazonVPCFullAccess",
+      "AmazonSQSFullAccess",
+      "AmazonEventBridgeFullAccess"
+    ]
+  }
+]
+
+users = [
+  {
+    name = "name-for-iam-user"
+    group_names = [ "name-for-iam-group" ]
+
+    permission_boundaries_allow = [
+      "ec2:*",
+      "elasticloadbalancing:*", # EC2FullAccess
+      "cloudwatch:*",           # EC2FullAccess
+      "autoscaling:*",          # EC2FullAccess
+      "route53:*",
+      "route53domains:*",
+      "s3:*",
+      "iam:*",
+      "sqs:*",
+      "events:*",    # EventBridgeFullAccess
+      "schemas:*",   # EventBridgeFullAccess
+      "scheduler:*", # EventBridgeFullAccess
+      "pipes:*"      # EventBridgeFullAccess
+    ]
+
+    tags = {
+      "Task"        = "01"
+      "Project"     = "rsschool-devops-course"
+      "Environment" = "dev"
+      "ManagedBy"   = "Terraform"
+    }
+  }
+]
+
+oidc_roles = [
+  {
+    name        = "NameForGithubActionsRole"
+    github_repo = "lerkasan/rsschool-devops-course-tasks"
+
+    aws_managed_policies = [
+      "AmazonEC2FullAccess",
+      "AmazonRoute53FullAccess",
+      "AmazonS3FullAccess",
+      "IAMFullAccess",
+      "AmazonVPCFullAccess",
+      "AmazonSQSFullAccess",
+      "AmazonEventBridgeFullAccess"
+    ]
+
+    permission_boundaries_allow = [
+      "ec2:*",                  # EC2FullAccess
+      "elasticloadbalancing:*", # EC2FullAccess
+      "cloudwatch:*",           # EC2FullAccess
+      "autoscaling:*",          # EC2FullAccess
+      "route53:*",
+      "route53domains:*",
+      "s3:*",
+      "iam:*",
+      "sqs:*",
+      "events:*",    # EventBridgeFullAccess
+      "schemas:*",   # EventBridgeFullAccess
+      "scheduler:*", # EventBridgeFullAccess
+      "pipes:*"      # EventBridgeFullAccess
+    ]
+
+    tags = {
+      "Task"        = "01"
+      "Project"     = "rsschool-devops-course"
+      "Environment" = "dev"
+      "ManagedBy"   = "Terraform"
+    }
+  }
+]
