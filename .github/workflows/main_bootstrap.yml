@@ -48,7 +48,7 @@ jobs:
         run: terraform -chdir=bootstrap init
 
       - name: Terraform format
-        run: terraform -chdir=bootstrap fmt -check
+        run: terraform -chdir=bootstrap fmt -check --recursive
 
       - name: Terraform validate
         run: terraform -chdir=bootstrap validate -no-color
