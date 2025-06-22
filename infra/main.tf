@@ -11,8 +11,8 @@ module "vpc" {
   enable_dns_support       = each.value.enable_dns_support
   enable_flow_logs         = each.value.enable_flow_logs
   flow_logs_retention_days = each.value.flow_logs_retention_days ### TODO: What if enable_flow_logs is false? Should we set flow_logs_retention_days to a value or not include it at all?
-  admin_public_ips         = var.admin_public_ips
-  tags                     = each.value.tags
+  # admin_public_ips         = var.admin_public_ips   ### Needed for NACL rules to allow SSH access from admin public IPs. Commented out because NACL are commented out in the nacl.tf
+  tags = each.value.tags
 }
 
 module "ec2_instance_connect_endpoint" {
@@ -20,8 +20,8 @@ module "ec2_instance_connect_endpoint" {
 
   source = "./modules/ec2_instance_connect_endpoint"
 
-  vpc_id    = module.vpc[each.key].vpc_id
-  subnet_id = module.vpc[each.key].subnets[each.value.subnet_cidr].id
+  vpc_id           = module.vpc[each.key].vpc_id
+  subnet_id        = module.vpc[each.key].subnets[each.value.subnet_cidr].id
   admin_public_ips = var.admin_public_ips
   tags             = each.value.tags
 }
@@ -29,12 +29,12 @@ module "ec2_instance_connect_endpoint" {
 module "bastion" {
   for_each = { for ec2 in var.ec2_bastions : coalesce(ec2.tags["Name"], "noname") => ec2 }
 
-  source                      = "./modules/ec2"
+  source = "./modules/ec2"
 
-  ec2_instance_type           = each.value.ec2_instance_type
-  vpc_id                      = module.vpc[each.value.vpc_cidr].vpc_id
-  subnet_id                   = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
-  associate_public_ip_address = each.value.associate_public_ip_address
+  ec2_instance_type                      = each.value.ec2_instance_type
+  vpc_id                                 = module.vpc[each.value.vpc_cidr].vpc_id
+  subnet_id                              = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
+  associate_public_ip_address            = each.value.associate_public_ip_address
   volume_type                            = each.value.volume_type
   volume_size                            = each.value.volume_size
   delete_on_termination                  = each.value.delete_on_termination
@@ -57,17 +57,17 @@ module "bastion" {
 module "appserver" {
   for_each = { for ec2 in var.ec2_appservers : coalesce(ec2.tags["Name"], "noname") => ec2 }
 
-  source                      = "./modules/ec2"
-  
-  ec2_instance_type           = each.value.ec2_instance_type
-  vpc_id                      = module.vpc[each.value.vpc_cidr].vpc_id
-  subnet_id                   = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
-  associate_public_ip_address = each.value.associate_public_ip_address
-  volume_type                = each.value.volume_type
-  volume_size                = each.value.volume_size
-  delete_on_termination      = each.value.delete_on_termination
-  private_ssh_key_name       = each.value.private_ssh_key_name
-  admin_public_ssh_key_names = each.value.admin_public_ssh_key_names
+  source = "./modules/ec2"
+
+  ec2_instance_type                      = each.value.ec2_instance_type
+  vpc_id                                 = module.vpc[each.value.vpc_cidr].vpc_id
+  subnet_id                              = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
+  associate_public_ip_address            = each.value.associate_public_ip_address
+  volume_type                            = each.value.volume_type
+  volume_size                            = each.value.volume_size
+  delete_on_termination                  = each.value.delete_on_termination
+  private_ssh_key_name                   = each.value.private_ssh_key_name
+  admin_public_ssh_key_names             = each.value.admin_public_ssh_key_names
   enable_bastion_access                  = each.value.enable_bastion_access
   bastion_security_group_id              = module.bastion[each.value.bastion_name].security_group_id
   enable_ec2_instance_connect_endpoint   = each.value.enable_ec2_instance_connect_endpoint

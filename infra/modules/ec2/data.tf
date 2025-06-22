@@ -1,3 +1,7 @@
+data "aws_vpc" "this" {
+  id = var.vpc_id
+}
+
 data "aws_ami" "this" {
   most_recent = true
 

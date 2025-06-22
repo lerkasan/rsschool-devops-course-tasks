@@ -76,11 +76,12 @@ variable "flow_logs_retention_days" {
   }
 }
 
-variable "admin_public_ips" {
-  description = "List of admin public IPs to allow EC2 Instance Connect Endpoint access"
-  type        = list(string)
-  default     = []
-}
+# Needed for NACL rules to allow SSH access from admin public IPs. Commented out because NACL are commented out in the nacl.tf
+# variable "admin_public_ips" {
+#   description = "List of admin public IPs to allow EC2 Instance Connect Endpoint access"
+#   type        = list(string)
+#   default     = []
+# }
 
 variable "tags" {
   description = "Tags for a bucket"
