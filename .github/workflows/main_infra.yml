@@ -19,6 +19,7 @@ env:
   TF_VAR_ec2_bastions: ${{ vars.EC2_BASTIONS }}
   TF_VAR_ec2_appservers: ${{ vars.EC2_APPSERVERS }}
   TF_VAR_ec2_instance_connect_endpoints: ${{ vars.EC2_INSTANCE_CONNECT_ENDPOINTS }}
+  TF_VAR_admin_public_ips: ${{ vars.ADMIN_PUBLIC_IPS }}
 
 jobs:
 
