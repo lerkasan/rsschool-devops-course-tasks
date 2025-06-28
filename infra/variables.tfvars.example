@@ -1,0 +1,118 @@
+region = "us-east-1"
+admin_public_ips = ["12.34.56.78"]
+
+vpcs = [
+  {
+    name                     = "rsschool-vpc-1"
+    cidr_block               = "10.1.0.0/16"
+    public_subnets           = ["10.1.10.0/24", "10.1.20.0/24"]
+    private_subnets          = ["10.1.230.0/24", "10.1.240.0/24"]
+    enable_dns_hostnames     = true
+    enable_dns_support       = true
+    enable_flow_logs         = true
+    flow_logs_retention_days = 365
+
+    tags = {
+      "Environment" = "dev"
+      "Project"     = "rsschool-devops"
+      "ManagedBy"   = "terraform"
+    }
+  }
+]
+
+ec2_bastions = [
+  {
+    ec2_instance_type           = "t3.micro"
+    vpc_cidr                    = "10.1.0.0/16"
+    subnet_cidr                 = "10.1.10.0/24"
+    associate_public_ip_address = true
+    volume_type                 = "gp3"
+    volume_size                 = 10
+    delete_on_termination       = true
+    private_ssh_key_name        = "bastion_rsschool_ssh_key_pair"
+    # admin_public_ssh_key_names = ["ssh_public_key"]
+    os                 = "ubuntu"
+    os_product         = "server"
+    os_architecture    = "amd64"
+    os_version         = "22.04"
+    os_releases        = { "22.04" = "jammy" }
+    ami_virtualization = "hvm"
+    ami_architectures  = { "amd64" = "x86_64" }
+    ami_owner_ids      = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+    tags = {
+      "Name"        = "BastionHost"
+      "Environment" = "dev"
+      "Project"     = "rsschool-devops"
+      "ManagedBy"   = "terraform"
+    }
+  }
+]
+
+ec2_appservers = [
+  {
+    ec2_instance_type     = "t3.micro"
+    vpc_cidr              = "10.1.0.0/16"
+    subnet_cidr           = "10.1.230.0/24"
+    volume_type           = "gp3"
+    volume_size           = 10
+    delete_on_termination = true
+    private_ssh_key_name  = "appserver_rsschool_ssh_key_pair"
+    enable_bastion_access = true
+    bastion_name          = "BastionHost"
+    # admin_public_ssh_key_names = ["ssh_public_key"]
+    os                 = "ubuntu"
+    os_product         = "server"
+    os_architecture    = "amd64"
+    os_version         = "22.04"
+    os_releases        = { "22.04" = "jammy" }
+    ami_virtualization = "hvm"
+    ami_architectures  = { "amd64" = "x86_64" }
+    ami_owner_ids      = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+    tags = {
+      "Name"        = "AppServer-1"
+      "Environment" = "dev"
+      "Project"     = "rsschool-devops"
+      "ManagedBy"   = "terraform"
+    }
+  },
+  {
+    ec2_instance_type           = "t3.micro"
+    vpc_cidr                    = "10.1.0.0/16"
+    subnet_cidr                 = "10.1.240.0/24"
+    associate_public_ip_address = false
+    enable_bastion_access       = true
+    bastion_name                = "BastionHost"
+    volume_type                 = "gp3"
+    volume_size                 = 10
+    delete_on_termination       = true
+    private_ssh_key_name        = "appserver_rsschool_ssh_key_pair"
+    # admin_public_ssh_key_names = ["ssh_public_key"]
+    os                 = "ubuntu"
+    os_product         = "server"
+    os_architecture    = "amd64"
+    os_version         = "22.04"
+    os_releases        = { "22.04" = "jammy" }
+    ami_virtualization = "hvm"
+    ami_architectures  = { "amd64" = "x86_64" }
+    ami_owner_ids      = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+    tags = {
+      "Name"        = "AppServer-2"
+      "Environment" = "dev"
+      "Project"     = "rsschool-devops"
+      "ManagedBy"   = "terraform"
+    }
+  }
+]
+
+ec2_instance_connect_endpoints = [
+  {
+    vpc_cidr = "10.1.0.0/16"
+    subnet_cidr = "10.1.240.0/24"
+    tags = {
+      "Name"        = "ec2-instance-connect-endpoint"
+      "Environment" = "dev"
+      "Project"     = "rsschool-devops"
+      "ManagedBy"   = "terraform"
+    }
+  }
+]

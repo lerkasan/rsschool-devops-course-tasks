@@ -1,8 +1,8 @@
 data "tls_certificate" "github_actions" {
-# https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
-# https://github.blog/changelog/2023-06-27-github-actions-update-on-oidc-integration-with-aws/
-# https://github.blog/changelog/2023-07-13-github-actions-oidc-integration-with-aws-no-longer-requires-pinning-of-intermediate-tls-certificates/
-# https://stackoverflow.com/a/76603055
+  # https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc_verify-thumbprint.html
+  # https://github.blog/changelog/2023-06-27-github-actions-update-on-oidc-integration-with-aws/
+  # https://github.blog/changelog/2023-07-13-github-actions-oidc-integration-with-aws-no-longer-requires-pinning-of-intermediate-tls-certificates/
+  # https://stackoverflow.com/a/76603055
   url = "${local.oidc_github_actions.provider_url}/.well-known/openid-configuration"
 }
 
@@ -20,9 +20,9 @@ data "aws_iam_policy_document" "permission_boundaries" {
   #checkov:skip=CKV2_AWS_40:The task #1 specifies that a new role should have IAMFullAccess policy attached, which in general is not recommended for security reasons.
 
   statement {
-    sid    = "ServiceBoundaries"
-    effect = "Allow"
-    actions = var.permission_boundaries_allow
+    sid       = "ServiceBoundaries"
+    effect    = "Allow"
+    actions   = var.permission_boundaries_allow
     resources = ["*"]
   }
 }

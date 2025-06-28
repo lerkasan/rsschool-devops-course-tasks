@@ -1,6 +1,6 @@
 resource "aws_kms_key" "this" {
-# checkov:skip=CKV2_AWS_64:False Positive. The KMS key policy is actually created via "aws_kms_key_policy" resource.
-  
+  # checkov:skip=CKV2_AWS_64:False Positive. The KMS key policy is actually created via "aws_kms_key_policy" resource.
+
   count = var.enable_encryption ? 1 : 0
 
   description         = "KMS key for S3 encryption"

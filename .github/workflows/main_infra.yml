@@ -5,20 +5,21 @@ on:
     branches:
       - main
     paths:
-      - 'bootstrap/**'
+      - 'infra/**'
   pull_request:
     branches:
       - main
     paths:
-      - 'bootstrap/**'
+      - 'infra/**'
 
 env:
   AWS_REGION: ${{ vars.REGION }}
   TF_VAR_region: ${{ vars.REGION }}
-  TF_VAR_s3_buckets: ${{ vars.S3_BUCKETS }}
-  TF_VAR_users: ${{ vars.IAM_USERS }}
-  TF_VAR_groups: ${{ vars.IAM_GROUPS }}
-  TF_VAR_oidc_roles: ${{ vars.OIDC_ROLES }}
+  TF_VAR_vpcs: ${{ vars.VPCS }}
+  TF_VAR_ec2_bastions: ${{ vars.EC2_BASTIONS }}
+  TF_VAR_ec2_appservers: ${{ vars.EC2_APPSERVERS }}
+  TF_VAR_ec2_instance_connect_endpoints: ${{ vars.EC2_INSTANCE_CONNECT_ENDPOINTS }}
+  TF_VAR_admin_public_ips: ${{ vars.ADMIN_PUBLIC_IPS }}
 
 jobs:
 
@@ -45,13 +46,13 @@ jobs:
           terraform_version: ${{ vars.TERRAFORM_VERSION }}
 
       - name: Terraform init
-        run: terraform -chdir=bootstrap init
+        run: terraform -chdir=infra init
 
       - name: Terraform format
-        run: terraform -chdir=bootstrap fmt -check --recursive
+        run: terraform -chdir=infra fmt -check --recursive
 
       - name: Terraform validate
-        run: terraform -chdir=bootstrap validate -no-color
+        run: terraform -chdir=infra validate -no-color
 
       - name: Cache plugin dir for TFLint
         uses: actions/cache@v4
@@ -125,13 +126,13 @@ jobs:
           terraform_version: ${{ vars.TERRAFORM_VERSION }}
 
       - name: Terraform init
-        run: terraform -chdir=bootstrap init
+        run: terraform -chdir=infra init
 
       - name: Terraform plan Infrastructure
-        run: terraform -chdir=bootstrap plan -no-color -input=false -out=/tmp/terraform-plan.tfplan
+        run: terraform -chdir=infra plan -no-color -input=false -out=/tmp/terraform-plan.tfplan
 
       - name: Save Terraform Plan Output to a File
-        run: terraform -chdir=bootstrap show -no-color /tmp/terraform-plan.tfplan > plan.txt
+        run: terraform -chdir=infra show -no-color /tmp/terraform-plan.tfplan > plan.txt
 
       - name: Save Terraform Plan as GitHub output
         id: get_tf_plan
@@ -143,27 +144,27 @@ jobs:
             echo EOF
           } >> "$GITHUB_OUTPUT"
 
- # Uncomment the following section to comment the PR with the Terraform Plan output             
-      - name: Comment PR with Terraform Plan output
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        env:
-          TF_PLAN_OUTPUT: ${{ steps.get_tf_plan.outputs.tf_plan_output }}
-        with:
-          script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: process.env.TF_PLAN_OUTPUT
-            })
+ # Uncomment the following section to comment the PR with the Terraform Plan output         
+    #   - name: Comment PR with Terraform Plan output
+    #     if: github.event_name == 'pull_request'
+    #     uses: actions/github-script@v7
+    #     env:
+    #       TF_PLAN_OUTPUT: ${{ steps.get_tf_plan.outputs.tf_plan_output }}
+    #     with:
+    #       script: |
+    #         github.rest.issues.createComment({
+    #           issue_number: context.issue.number,
+    #           owner: context.repo.owner,
+    #           repo: context.repo.repo,
+    #           body: process.env.TF_PLAN_OUTPUT
+    #         })
 
- # Uncomment the following section to upload the Terraform Plan as an artifact  
-      - name: Upload Terraform Plan as Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: terraform-plan
-          path: /tmp/terraform-plan.tfplan
+ # Uncomment the following section to upload the Terraform Plan as an artifact   
+    #   - name: Upload Terraform Plan as Artifact
+    #     uses: actions/upload-artifact@v4
+    #     with:
+    #       name: terraform-plan
+    #       path: /tmp/terraform-plan.tfplan
 
       - name: Setup Infracost
         uses: infracost/actions/setup@v3
@@ -216,7 +217,7 @@ jobs:
                                      --repo=$GITHUB_REPOSITORY \
                                      --github-token=${{ github.token }} \
                                      --pull-request=${{ github.event.pull_request.number }} \
-                                     --behavior=update
+                                     --behavior=new
 
   terraform-apply:
     name: Provision infrastructure
@@ -245,7 +246,7 @@ jobs:
           terraform_version: ${{ vars.TERRAFORM_VERSION }}
 
       - name: Terraform init
-        run: terraform -chdir=bootstrap init
+        run: terraform -chdir=infra init
 
       - name: Downoad Terraform Plan as Artifact
         uses: actions/download-artifact@v4

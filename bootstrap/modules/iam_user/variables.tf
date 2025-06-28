@@ -16,7 +16,7 @@ variable "group_names" {
   validation {
     condition     = alltrue([for group in var.group_names : can(regex("^[a-zA-Z0-9-]+$", group))])
     error_message = "Group names must have letters, numbers, and hyphens only)."
-  } 
+  }
 }
 
 variable "permission_boundaries_allow" {

@@ -6,9 +6,9 @@ data "aws_iam_policy" "this" {
 
 data "aws_iam_policy_document" "enforce_MFA" {
   statement {
-    sid    = "DenyAllIfMFANotEnabled"
-    effect = "Deny"
-    actions = ["*"]
+    sid       = "DenyAllIfMFANotEnabled"
+    effect    = "Deny"
+    actions   = ["*"]
     resources = ["*"]
     condition {
       test     = "Bool" # or maybe BoolIfExists?

@@ -1,0 +1,11 @@
+ssh -i ../../ssh_keys/appserver_rsschool_ssh_key_pair.pem -o ProxyCommand="ssh -i ../../ssh_keys/bastion_rsschool_ssh_key_pair.pem -W %h:%p ubuntu@54.91.195.38" ubuntu@10.1.230.231
+
+aws sts decode-authorization-message --encoded-message KDmmJmkLKm...iUtfAa --output text | jq '.'
+
+tflint --minimum-failure-severity=notice --recursive --config $(pwd)/.tflint.hcl
+
+curl -Is https://www.google.com || head -n 15
+
+if nc -zw1 google.com 443; then
+  echo "we have connectivity"
+fi
