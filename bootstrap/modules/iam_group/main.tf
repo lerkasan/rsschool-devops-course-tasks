@@ -17,7 +17,10 @@ resource "aws_iam_policy" "enforce_MFA" {
   policy = data.aws_iam_policy_document.enforce_MFA.json
 }
 
-resource "aws_iam_group_policy_attachment" "enforce_MFA" {
-  group      = aws_iam_group.this.name
-  policy_arn = aws_iam_policy.enforce_MFA.arn
-}
+# Caused a weird error when creating EC2 Instance Connect Endpoint via terraform. EC2 Instance Connect Endpoint would be created with status "create-failed" with the encoded Authorization Message error
+# "You are not authorized to perform this operation. User is not authorized to perform "ec2:CreateNetworkInterface" "with an explicit deny in an identity-based policy"
+# However, this user has MFA enabled in AWS Console and the user was able to successfully create EC2 Instance Connect Endpoint via AWS Console website
+# resource "aws_iam_group_policy_attachment" "enforce_MFA" {
+#   group      = aws_iam_group.this.name
+#   policy_arn = aws_iam_policy.enforce_MFA.arn
+# }
