@@ -17,7 +17,8 @@ env:
   TF_VAR_region: ${{ vars.REGION }}
   TF_VAR_vpcs: ${{ vars.VPCS }}
   TF_VAR_ec2_bastions: ${{ vars.EC2_BASTIONS }}
-  TF_VAR_ec2_appservers: ${{ vars.EC2_APPSERVERS }}
+  TF_VAR_ec2_ec2_k3s_masters: ${{ vars.EC2_K3S_MASTERS }}
+  TF_VAR_ec2_ec2_k3s_agents: ${{ vars.EC2_K3S_AGENTS }}
   TF_VAR_ec2_instance_connect_endpoints: ${{ vars.EC2_INSTANCE_CONNECT_ENDPOINTS }}
   TF_VAR_admin_public_ips: ${{ vars.ADMIN_PUBLIC_IPS }}
 

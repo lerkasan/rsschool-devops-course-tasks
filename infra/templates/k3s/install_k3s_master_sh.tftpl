@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+set -eou pipefail 
+
+HOSTNAME=$(hostname -s)
+
+aws ssm put-parameter --name "${hostname_ssm_parameter_name}" \
+                      --value "$HOSTNAME" \
+                      --region "${region}" \
+                      --overwrite \
+                      --type "SecureString"
+
+curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode 644" sh -
+
+TOKEN=$(cat /var/lib/rancher/k3s/server/node-token)
+
+aws ssm put-parameter --name "${token_ssm_parameter_name}" \
+                      --value "$TOKEN" \
+                      --region "${region}" \
+                      --overwrite \
+                      --type "SecureString"
+
+aws ssm put-parameter --name "${kubeconfig_ssm_parameter_name}" \
+                      --value "$(cat etc/rancher/k3s/k3s.yaml)" \
+                      --region "${region}" \
+                      --overwrite \
+                      --type "SecureString"

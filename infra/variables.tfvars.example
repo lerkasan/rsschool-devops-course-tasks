@@ -20,6 +20,19 @@ vpcs = [
   }
 ]
 
+ec2_instance_connect_endpoints = [
+  {
+    vpc_cidr    = "10.1.0.0/16"
+    subnet_cidr = "10.1.240.0/24"
+    tags = {
+      "Name"        = "ec2-instance-connect-endpoint"
+      "Environment" = "dev"
+      "Project"     = "rsschool-devops"
+      "ManagedBy"   = "terraform"
+    }
+  }
+]
+
 ec2_bastions = [
   {
     ec2_instance_type           = "t3.micro"
@@ -31,14 +44,32 @@ ec2_bastions = [
     delete_on_termination       = true
     private_ssh_key_name        = "bastion_rsschool_ssh_key_pair"
     # admin_public_ssh_key_names = ["ssh_public_key"]
-    os                 = "ubuntu"
-    os_product         = "server"
-    os_architecture    = "amd64"
-    os_version         = "22.04"
-    os_releases        = { "22.04" = "jammy" }
-    ami_virtualization = "hvm"
-    ami_architectures  = { "amd64" = "x86_64" }
-    ami_owner_ids      = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+    enable_ec2_instance_connect_endpoint = true
+    os                                   = "ubuntu"
+    os_product                           = "server"
+    os_architecture                      = "amd64"
+    os_version                           = "22.04"
+    os_releases                          = { "22.04" = "jammy" }
+    ami_virtualization                   = "hvm"
+    ami_architectures                    = { "amd64" = "x86_64" }
+    ami_owner_ids                        = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+
+    userdata_config = {
+      hostname_ssm_parameter_name = "rsschool_k3s_hostname",
+      kubeconfig_ssm_parameter_name = "rsschool_k3s_kubeconfig"
+    }
+
+    iam_policy_statements = [
+      {
+        sid    = "SystemsManagerParameterReadOnlyRSSchoolAgent"
+        effect = "Allow"
+        actions = [
+          "ssm:GetParameter"
+        ]
+        resources = ["arn:aws:ssm:us-east-1:123456789012:parameter/rsschool_k3s_*"]
+      }
+    ]
+
     tags = {
       "Name"        = "BastionHost"
       "Environment" = "dev"
@@ -48,9 +79,9 @@ ec2_bastions = [
   }
 ]
 
-ec2_appservers = [
+ec2_k3s_masters = [
   {
-    ec2_instance_type     = "t3.micro"
+    ec2_instance_type     = "t3.small"
     vpc_cidr              = "10.1.0.0/16"
     subnet_cidr           = "10.1.230.0/24"
     volume_type           = "gp3"
@@ -60,43 +91,35 @@ ec2_appservers = [
     enable_bastion_access = true
     bastion_name          = "BastionHost"
     # admin_public_ssh_key_names = ["ssh_public_key"]
-    os                 = "ubuntu"
-    os_product         = "server"
-    os_architecture    = "amd64"
-    os_version         = "22.04"
-    os_releases        = { "22.04" = "jammy" }
-    ami_virtualization = "hvm"
-    ami_architectures  = { "amd64" = "x86_64" }
-    ami_owner_ids      = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
-    tags = {
-      "Name"        = "AppServer-1"
-      "Environment" = "dev"
-      "Project"     = "rsschool-devops"
-      "ManagedBy"   = "terraform"
+    enable_ec2_instance_connect_endpoint = true
+    os                                   = "ubuntu"
+    os_product                           = "server"
+    os_architecture                      = "amd64"
+    os_version                           = "22.04"
+    os_releases                          = { "22.04" = "jammy" }
+    ami_virtualization                   = "hvm"
+    ami_architectures                    = { "amd64" = "x86_64" }
+    ami_owner_ids                        = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+
+    userdata_config = {
+      install_k3s_master          = true,
+      hostname_ssm_parameter_name = "rsschool_k3s_hostname",
+      token_ssm_parameter_name    = "rsschool_k3s_token"
     }
-  },
-  {
-    ec2_instance_type           = "t3.micro"
-    vpc_cidr                    = "10.1.0.0/16"
-    subnet_cidr                 = "10.1.240.0/24"
-    associate_public_ip_address = false
-    enable_bastion_access       = true
-    bastion_name                = "BastionHost"
-    volume_type                 = "gp3"
-    volume_size                 = 10
-    delete_on_termination       = true
-    private_ssh_key_name        = "appserver_rsschool_ssh_key_pair"
-    # admin_public_ssh_key_names = ["ssh_public_key"]
-    os                 = "ubuntu"
-    os_product         = "server"
-    os_architecture    = "amd64"
-    os_version         = "22.04"
-    os_releases        = { "22.04" = "jammy" }
-    ami_virtualization = "hvm"
-    ami_architectures  = { "amd64" = "x86_64" }
-    ami_owner_ids      = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+
+    iam_policy_statements = [
+      {
+        sid    = "SystemsManagerParameterReadOnlyRSSchool"
+        effect = "Allow"
+        actions = [
+          "ssm:PutParameter"
+        ]
+        resources = ["arn:aws:ssm:us-east-1:123456789012:parameter/rsschool_k3s_*"]
+      }
+    ]
+
     tags = {
-      "Name"        = "AppServer-2"
+      "Name"        = "Control-Plane"
       "Environment" = "dev"
       "Project"     = "rsschool-devops"
       "ManagedBy"   = "terraform"
@@ -104,12 +127,48 @@ ec2_appservers = [
   }
 ]
 
-ec2_instance_connect_endpoints = [
+
+ec2_k3s_agents = [
   {
-    vpc_cidr = "10.1.0.0/16"
-    subnet_cidr = "10.1.240.0/24"
+    ec2_instance_type     = "t3.small"
+    vpc_cidr              = "10.1.0.0/16"
+    subnet_cidr           = "10.1.240.0/24"
+    volume_type           = "gp3"
+    volume_size           = 10
+    delete_on_termination = true
+    private_ssh_key_name  = "appserver_rsschool_ssh_key_pair"
+    enable_bastion_access = true
+    bastion_name          = "BastionHost"
+    # admin_public_ssh_key_names = ["ssh_public_key"]
+    enable_ec2_instance_connect_endpoint = true
+    os                                   = "ubuntu"
+    os_product                           = "server"
+    os_architecture                      = "amd64"
+    os_version                           = "22.04"
+    os_releases                          = { "22.04" = "jammy" }
+    ami_virtualization                   = "hvm"
+    ami_architectures                    = { "amd64" = "x86_64" }
+    ami_owner_ids                        = { "ubuntu" = "099720109477" } # Canonical's official Ubuntu AMIs
+
+    userdata_config = {
+      install_k3s_agent           = true,
+      hostname_ssm_parameter_name = "rsschool_k3s_hostname",
+      token_ssm_parameter_name    = "rsschool_k3s_token"
+    }
+
+    iam_policy_statements = [
+      {
+        sid    = "SystemsManagerParameterReadOnlyRSSchoolAgent"
+        effect = "Allow"
+        actions = [
+          "ssm:GetParameter"
+        ]
+        resources = ["arn:aws:ssm:us-east-1:123456789012:parameter/rsschool_k3s_*"]
+      }
+    ]
+
     tags = {
-      "Name"        = "ec2-instance-connect-endpoint"
+      "Name"        = "Worker-Node-1"
       "Environment" = "dev"
       "Project"     = "rsschool-devops"
       "ManagedBy"   = "terraform"

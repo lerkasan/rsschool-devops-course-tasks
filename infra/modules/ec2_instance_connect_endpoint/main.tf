@@ -10,7 +10,7 @@ resource "aws_ec2_instance_connect_endpoint" "this" {
 }
 
 resource "aws_iam_policy" "this" {
-  name        = "ec2-instance-connect"
+  name        = "ec2-instance-connect-rsschool"
   description = "Allow to connect to EC2 instance via EC2 Instance Connect Endpoint"
   policy      = data.aws_iam_policy_document.connect_to_ec2_via_ec2_instance_connect_endpoint.json
 

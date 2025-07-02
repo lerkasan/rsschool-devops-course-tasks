@@ -122,3 +122,14 @@ resource "aws_security_group_rule" "allow_outbound_icmp_from_ec2_instance_to_8_8
   cidr_blocks       = [local.ip_8_8_8_8]
   security_group_id = aws_security_group.ec2_instance.id
 }
+
+
+resource "aws_security_group_rule" "allow_outbound_traffic_from_ec2_instance_to_vpc_cidr" {
+  type              = "egress"
+  description       = "All egress traffic to VPC CIDR"
+  from_port         = 0
+  to_port           = 0
+  protocol          = "-1"
+  cidr_blocks       = [data.aws_vpc.this.cidr_block]
+  security_group_id = aws_security_group.ec2_instance.id
+}
