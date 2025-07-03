@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+set -eou pipefail 
+
+# Wait for the K3s master node to write its hostname to SSM Parameter Store
+sleep 120
+
+MASTER_HOSTNAME=$(aws ssm get-parameter --region "${region}" \
+                                         --name "${hostname_ssm_parameter_name}" \
+                                         --with-decryption \
+                                         --query Parameter.Value \
+                                         --output text)
+
+export K3S_URL="https://$MASTER_HOSTNAME:6443"
+
+echo "Waiting for K3s master ..."
+
+WAIT_RETRIES=30
+
+until nc -z $MASTER_HOSTNAME 6443; do
+  sleep 5
+  WAIT_RETRIES=$((WAIT_RETRIES - 1))
+
+  if [ $WAIT_RETRIES -lt 0 ]; then
+    echo "ERROR: K3s master is not ready"
+    exit 1
+  fi
+done
+
+echo "k3s master is listening on port 6443"
+
+# Wait for the K3s master node to write its token to SSM Parameter Store
+sleep 60
+
+export K3S_TOKEN=$(aws ssm get-parameter --region "${region}" \
+                                  --name "${token_ssm_parameter_name}" \
+                                  --with-decryption \
+                                  --query Parameter.Value \
+                                  --output text)
+
+curl -sfL https://get.k3s.io | sh -
+
+unset K3S_URL
+unset K3S_TOKEN

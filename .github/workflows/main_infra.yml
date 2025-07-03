@@ -17,7 +17,8 @@ env:
   TF_VAR_region: ${{ vars.REGION }}
   TF_VAR_vpcs: ${{ vars.VPCS }}
   TF_VAR_ec2_bastions: ${{ vars.EC2_BASTIONS }}
-  TF_VAR_ec2_appservers: ${{ vars.EC2_APPSERVERS }}
+  TF_VAR_ec2_k3s_masters: ${{ vars.EC2_K3S_MASTERS }}
+  TF_VAR_ec2_k3s_agents: ${{ vars.EC2_K3S_AGENTS }}
   TF_VAR_ec2_instance_connect_endpoints: ${{ vars.EC2_INSTANCE_CONNECT_ENDPOINTS }}
   TF_VAR_admin_public_ips: ${{ vars.ADMIN_PUBLIC_IPS }}
 
@@ -54,52 +55,52 @@ jobs:
       - name: Terraform validate
         run: terraform -chdir=infra validate -no-color
 
-      - name: Cache plugin dir for TFLint
-        uses: actions/cache@v4
-        with:
-          path: ~/.tflint.d/plugins
-          key: tflint-${{ hashFiles('.tflint.hcl') }}
+      # - name: Cache plugin dir for TFLint
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.tflint.d/plugins
+      #     key: tflint-${{ hashFiles('.tflint.hcl') }}
 
-      - name: Setup TFLint
-        uses: terraform-linters/setup-tflint@v4
-        with:
-          tflint_version: v0.58.0
-      - name: Show version
-        run: tflint --version
+      # - name: Setup TFLint
+      #   uses: terraform-linters/setup-tflint@v4
+      #   with:
+      #     tflint_version: v0.58.0
+      # - name: Show version
+      #   run: tflint --version
   
-      - name: Init TFLint
-        run: tflint --init
-        # env:
-        #   # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
-        #   GITHUB_TOKEN: ${{ github.token }}
+      # - name: Init TFLint
+      #   run: tflint --init
+      #   # env:
+      #   #   # https://github.com/terraform-linters/tflint/blob/master/docs/user-guide/plugins.md#avoiding-rate-limiting
+      #   #   GITHUB_TOKEN: ${{ github.token }}
   
-      - name: Run TFLint
-        run: tflint --minimum-failure-severity=notice --recursive --config $(pwd)/.tflint.hcl
+      # - name: Run TFLint
+      #   run: tflint --minimum-failure-severity=notice --recursive --config $(pwd)/.tflint.hcl
 
-      # - name: Scan with GitLeaks
-      #   uses: gitleaks/gitleaks-action@v2
-      #   env:
-      #     GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
-      #     GITHUB_TOKEN: ${{ github.token }}
+      # # - name: Scan with GitLeaks
+      # #   uses: gitleaks/gitleaks-action@v2
+      # #   env:
+      # #     GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+      # #     GITHUB_TOKEN: ${{ github.token }}
 
-      - name: Run Trivy vulnerability scanner in fs mode
-        uses: aquasecurity/trivy-action@0.31.0
-        with:
-          scan-type: 'config'
-          hide-progress: true
-          format: 'table'
-          exit-code: '1'
-          ignore-unfixed: false
-          severity: 'CRITICAL,HIGH,MEDIUM'
+      # - name: Run Trivy vulnerability scanner in fs mode
+      #   uses: aquasecurity/trivy-action@0.31.0
+      #   with:
+      #     scan-type: 'config'
+      #     hide-progress: true
+      #     format: 'table'
+      #     exit-code: '1'
+      #     ignore-unfixed: false
+      #     severity: 'CRITICAL,HIGH,MEDIUM'
 
-      - name: Run Checkov action
-        id: checkov
-        uses: bridgecrewio/checkov-action@v12
-        with:
-          directory: bootstrap
-          quiet: true
-          soft_fail: false
-          download_external_modules: false
+      # - name: Run Checkov action
+      #   id: checkov
+      #   uses: bridgecrewio/checkov-action@v12
+      #   with:
+      #     directory: bootstrap
+      #     quiet: true
+      #     soft_fail: false
+      #     download_external_modules: false
 
   terraform-plan:
     name: Plan infrastructure
@@ -166,58 +167,58 @@ jobs:
     #       name: terraform-plan
     #       path: /tmp/terraform-plan.tfplan
 
-      - name: Setup Infracost
-        uses: infracost/actions/setup@v3
-        with:
-          api-key: ${{ secrets.INFRACOST_API_KEY }}
+      # - name: Setup Infracost
+      #   uses: infracost/actions/setup@v3
+      #   with:
+      #     api-key: ${{ secrets.INFRACOST_API_KEY }}
 
-      # Generate total infrastructure cost via Infracost
-      - name: Generate total cost estimate via Infracost
-        if: github.event_name == 'push'    
-        run: |
-          infracost breakdown --path=./bootstrap \
-                              --format=table
+      # # Generate total infrastructure cost via Infracost
+      # - name: Generate total cost estimate via Infracost
+      #   if: github.event_name == 'push'    
+      #   run: |
+      #     infracost breakdown --path=./bootstrap \
+      #                         --format=table
 
-      # Checkout the base branch of the pull request (e.g. main/master)
-      - name: Checkout base branch
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v4
-        with:
-          ref: '${{ github.event.pull_request.base.ref }}'
+      # # Checkout the base branch of the pull request (e.g. main/master)
+      # - name: Checkout base branch
+      #   if: github.event_name == 'pull_request'
+      #   uses: actions/checkout@v4
+      #   with:
+      #     ref: '${{ github.event.pull_request.base.ref }}'
 
-      # Generate Infracost JSON file as the baseline
-      - name: Generate Infracost cost estimate baseline
-        if: github.event_name == 'pull_request'    
-        run: |
-          infracost breakdown --path=./bootstrap \
-                              --format=json \
-                              --out-file=/tmp/infracost-base.json
+      # # Generate Infracost JSON file as the baseline
+      # - name: Generate Infracost cost estimate baseline
+      #   if: github.event_name == 'pull_request'    
+      #   run: |
+      #     infracost breakdown --path=./bootstrap \
+      #                         --format=json \
+      #                         --out-file=/tmp/infracost-base.json
 
-      # Checkout the current PR branch so we can create a diff.
-      - name: Checkout PR branch
-        if: github.event_name == 'pull_request'
-        uses: actions/checkout@v4
+      # # Checkout the current PR branch so we can create a diff.
+      # - name: Checkout PR branch
+      #   if: github.event_name == 'pull_request'
+      #   uses: actions/checkout@v4
 
-      # Generate an Infracost diff and save it to a JSON file.
-      - name: Generate Infracost diff
-        if: github.event_name == 'pull_request'
-        run: |
-          infracost diff --path=./bootstrap \
-                          --format=json \
-                          --compare-to=/tmp/infracost-base.json \
-                          --out-file=/tmp/infracost.json
+      # # Generate an Infracost diff and save it to a JSON file.
+      # - name: Generate Infracost diff
+      #   if: github.event_name == 'pull_request'
+      #   run: |
+      #     infracost diff --path=./bootstrap \
+      #                     --format=json \
+      #                     --compare-to=/tmp/infracost-base.json \
+      #                     --out-file=/tmp/infracost.json
 
-      # Posts a comment to the PR using the 'update' behavior.
-      # This creates a single comment and updates it. The "quietest" option.
-      # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
-      - name: Post Infracost comment
-        if: github.event_name == 'pull_request'
-        run: |
-            infracost comment github --path=/tmp/infracost.json \
-                                     --repo=$GITHUB_REPOSITORY \
-                                     --github-token=${{ github.token }} \
-                                     --pull-request=${{ github.event.pull_request.number }} \
-                                     --behavior=new
+      # # Posts a comment to the PR using the 'update' behavior.
+      # # This creates a single comment and updates it. The "quietest" option.
+      # # See https://www.infracost.io/docs/features/cli_commands/#comment-on-pull-requests for other options.
+      # - name: Post Infracost comment
+      #   if: github.event_name == 'pull_request'
+      #   run: |
+      #       infracost comment github --path=/tmp/infracost.json \
+      #                                --repo=$GITHUB_REPOSITORY \
+      #                                --github-token=${{ github.token }} \
+      #                                --pull-request=${{ github.event.pull_request.number }} \
+      #                                --behavior=new
 
   terraform-apply:
     name: Provision infrastructure

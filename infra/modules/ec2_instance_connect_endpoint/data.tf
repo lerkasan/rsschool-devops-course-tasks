@@ -8,7 +8,7 @@ data "aws_vpc" "this" {
 data "aws_iam_policy_document" "connect_to_ec2_via_ec2_instance_connect_endpoint" {
 
   statement {
-    sid    = "SendSSHPublicKey"
+    sid    = "SendSSHPublicKeyRSSchool"
     effect = "Allow"
     actions = [
       "ec2-instance-connect:SendSSHPublicKey"
@@ -23,7 +23,7 @@ data "aws_iam_policy_document" "connect_to_ec2_via_ec2_instance_connect_endpoint
   }
 
   statement {
-    sid    = "EC2ConnectEndpoint"
+    sid    = "EC2ConnectEndpointRSSchool"
     effect = "Allow"
     actions = [
       "ec2-instance-connect:OpenTunnel"
@@ -54,7 +54,7 @@ data "aws_iam_policy_document" "connect_to_ec2_via_ec2_instance_connect_endpoint
   }
 
   statement {
-    sid    = "EC2DescribeConnectEndpoints"
+    sid    = "EC2DescribeConnectEndpointsRSSchool"
     effect = "Allow"
     actions = [
       "ec2:DescribeInstances",

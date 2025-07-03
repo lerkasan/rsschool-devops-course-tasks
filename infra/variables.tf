@@ -61,7 +61,7 @@ variable "vpcs" {
   default = []
 }
 
-variable "ec2_appservers" {
+variable "ec2_k3s_masters" {
   type = list(object({
     ec2_instance_type                    = string
     vpc_cidr                             = string
@@ -85,6 +85,68 @@ variable "ec2_appservers" {
     ami_architectures                    = optional(map(string), { "amd64" = "x86_64" })
     ami_owner_ids                        = optional(map(string), { "ubuntu" = "099720109477" }) # Canonical for Ubuntu AMIs
     tags                                 = map(string)
+
+    iam_policy_statements = optional(set(object({
+      sid       = string
+      effect    = string
+      actions   = list(string)
+      resources = list(string)
+      condition = optional(map(string))
+    })))
+
+    userdata = optional(string, null)
+    userdata_config = optional(object({
+      install_k3s_master            = optional(bool, false)
+      token_ssm_parameter_name      = optional(string, "rsschool_k3s_hostname")
+      hostname_ssm_parameter_name   = optional(string, "rsschool_k3s_token")
+      kubeconfig_ssm_parameter_name = optional(string, "rsschool_k3s_kubeconfig")
+    }))
+  }))
+
+  default = []
+}
+
+variable "ec2_k3s_agents" {
+  type = list(object({
+    ec2_instance_type                    = string
+    vpc_cidr                             = string
+    subnet_cidr                          = string
+    associate_public_ip_address          = optional(bool, false)
+    bastion_name                         = optional(string, "")
+    volume_type                          = optional(string, "gp3")
+    volume_size                          = optional(number, 10)
+    delete_on_termination                = optional(bool, true)
+    private_ssh_key_name                 = string
+    admin_public_ssh_key_names           = optional(list(string), [])
+    enable_bastion_access                = optional(bool, false)
+    bastion_security_group_id            = optional(string, "")
+    enable_ec2_instance_connect_endpoint = optional(bool, false)
+    os                                   = string
+    os_product                           = optional(string, "server")
+    os_architecture                      = optional(string, "amd64")
+    os_version                           = string
+    os_releases                          = map(string)
+    ami_virtualization                   = optional(string, "hvm")
+    ami_architectures                    = optional(map(string), { "amd64" = "x86_64" })
+    ami_owner_ids                        = optional(map(string), { "ubuntu" = "099720109477" }) # Canonical for Ubuntu AMIs
+
+    iam_policy_statements = optional(set(object({
+      sid       = string
+      effect    = string
+      actions   = list(string)
+      resources = list(string)
+      condition = optional(map(string))
+    })))
+
+    userdata = optional(string, null)
+    userdata_config = optional(object({
+      install_k3s_agent             = optional(bool, false)
+      token_ssm_parameter_name      = optional(string, "rsschool_k3s_hostname")
+      hostname_ssm_parameter_name   = optional(string, "rsschool_k3s_token")
+      kubeconfig_ssm_parameter_name = optional(string, "rsschool_k3s_kubeconfig")
+    }))
+
+    tags = map(string)
   }))
 
   default = []
@@ -110,7 +172,22 @@ variable "ec2_bastions" {
     ami_virtualization                   = optional(string, "hvm")
     ami_architectures                    = optional(map(string), { "amd64" = "x86_64" })
     ami_owner_ids                        = optional(map(string), { "ubuntu" = "099720109477" }) # Canonical for Ubuntu AMIs
-    tags                                 = map(string)
+    userdata                             = optional(string, null)
+
+    iam_policy_statements = optional(set(object({
+      sid       = string
+      effect    = string
+      actions   = list(string)
+      resources = list(string)
+      condition = optional(map(string))
+    })))
+
+    userdata_config = optional(object({
+      hostname_ssm_parameter_name   = optional(string, "rsschool_k3s_hostname")
+      kubeconfig_ssm_parameter_name = optional(string, "rsschool_k3s_kubeconfig")
+    }))
+
+    tags = map(string)
   }))
 
   default = []

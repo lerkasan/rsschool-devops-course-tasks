@@ -1,11 +1,11 @@
 region = "us-east-1"
 
 s3_buckets = [{
-  name                = "bucket-name-for-terraform-state"
+  name                = "terraform-state-bootstrap-rs-school-devops"
   enable_encryption   = true
   enable_key_rotation = true
   enable_logging      = true
-  logging_bucket_name = "bucket-name-for-storring-access-logs-to-terraform-state"
+  logging_bucket_name = "logs-for-terraform-state-bootstrap-rs-school-devops"
   object_ownership    = "BucketOwnerEnforced"
   versioning_status   = "Enabled"
   lifecycle_rule = {
@@ -19,30 +19,33 @@ s3_buckets = [{
 
 groups = [
   {
-    name                        = "name-for-iam-group"
-    path                        = "/"
-    aws_managed_policies        = [
+    name = "rsschool-devops-course"
+    path = "/"
+    aws_managed_policies = [
       "AmazonEC2FullAccess",
       "AmazonRoute53FullAccess",
       "AmazonS3FullAccess",
       "IAMFullAccess",
       "AmazonVPCFullAccess",
       "AmazonSQSFullAccess",
-      "AmazonEventBridgeFullAccess"
+      "AmazonEventBridgeFullAccess",
+      "AWSKeyManagementServicePowerUser",
+      "CloudWatchLogsFullAccess"
     ]
   }
 ]
 
 users = [
   {
-    name = "name-for-iam-user"
-    group_names = [ "name-for-iam-group" ]
+    name        = "rsschool-user"
+    group_names = ["rsschool-devops-course"]
 
     permission_boundaries_allow = [
       "ec2:*",
       "elasticloadbalancing:*", # EC2FullAccess
-      "cloudwatch:*",           # EC2FullAccess
       "autoscaling:*",          # EC2FullAccess
+      "cloudwatch:*",           # EC2FullAccess
+      "logs:*",              
       "route53:*",
       "route53domains:*",
       "s3:*",
@@ -51,7 +54,10 @@ users = [
       "events:*",    # EventBridgeFullAccess
       "schemas:*",   # EventBridgeFullAccess
       "scheduler:*", # EventBridgeFullAccess
-      "pipes:*"      # EventBridgeFullAccess
+      "pipes:*",     # EventBridgeFullAccess
+      "kms:*",
+      "ec2-instance-connect:*",
+      "sts:DecodeAuthorizationMessage" # Needed for debugging purposes in case of encoded error messages from AWS services
     ]
 
     tags = {
@@ -65,7 +71,7 @@ users = [
 
 oidc_roles = [
   {
-    name        = "NameForGithubActionsRole"
+    name        = "GithubActionsRole"
     github_repo = "lerkasan/rsschool-devops-course-tasks"
 
     aws_managed_policies = [
@@ -75,14 +81,17 @@ oidc_roles = [
       "IAMFullAccess",
       "AmazonVPCFullAccess",
       "AmazonSQSFullAccess",
-      "AmazonEventBridgeFullAccess"
+      "AmazonEventBridgeFullAccess",
+      "AWSKeyManagementServicePowerUser",
+      "CloudWatchLogsFullAccess"
     ]
 
     permission_boundaries_allow = [
-      "ec2:*",                  # EC2FullAccess
+      "ec2:*",
       "elasticloadbalancing:*", # EC2FullAccess
-      "cloudwatch:*",           # EC2FullAccess
       "autoscaling:*",          # EC2FullAccess
+      "cloudwatch:*",           # EC2FullAccess
+      "logs:*",
       "route53:*",
       "route53domains:*",
       "s3:*",
@@ -91,7 +100,8 @@ oidc_roles = [
       "events:*",    # EventBridgeFullAccess
       "schemas:*",   # EventBridgeFullAccess
       "scheduler:*", # EventBridgeFullAccess
-      "pipes:*"      # EventBridgeFullAccess
+      "pipes:*",     # EventBridgeFullAccess
+      "kms:*"
     ]
 
     tags = {

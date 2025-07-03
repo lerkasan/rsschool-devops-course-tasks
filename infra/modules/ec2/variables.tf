@@ -84,6 +84,38 @@ variable "ec2_connect_endpoint_security_group_id" {
   default     = ""
 }
 
+variable "iam_policy_statements" {
+  description = "AWS IAM policies to attach to the EC2 instance role"
+  type = set(object({
+    sid       = string
+    effect    = string
+    actions   = list(string)
+    resources = list(string)
+    condition = optional(map(string))
+  }))
+
+  default = []
+}
+
+variable "userdata" {
+  description = "User data for the EC2 instance"
+  type        = string
+  sensitive   = true
+
+  default = null
+}
+
+variable "userdata_config" {
+  description = "Application configuration for the EC2 instance"
+  type = object({
+    install_k3s_server = optional(bool, false)
+    install_k3s_agent  = optional(bool, false)
+  })
+  sensitive = true
+
+  default = null
+}
+
 variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)

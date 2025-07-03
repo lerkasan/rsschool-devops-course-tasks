@@ -1,3 +1,27 @@
+**TASK 3**
+
+**How to run this code**
+1. Run following commands in teminal:
+
+`terraform init`
+
+`terraform apply`
+
+2. Connect to Bastion host via SSH
+
+3. Check cluster nodes using command:
+`kubectl get nodes -o wide`
+
+4. Check that cluster works as intended by creating a pod:
+
+kubectl apply -f https://k8s.io/examples/pods/simple-pod.yaml
+kubectl get all --all-namespaces
+
+The output should show nginx pod in default namespace.
+
+5. To destroy infrastructure run `terraform destroy` and type "yes" to confirm.
+______________________________________________________________________________
+
 **TASK 2**
 
 This main part of terraform code is located in `infra` directory and divided into 3 modules: 
@@ -202,7 +226,7 @@ To configure GitHub variables and secrets necessary for GitHub Actions workflow 
     - TERRAFORM_ROLE with a value that equals ARN of the IAM role created earlier for GitHub Actions 
     - INFRACOST_API_KEY if you want to use Infracost tool, otherwise delete steps related to Infracost from terraform-plan job in GitHub Actions workflow.
 
-______________________________________________________________________________-
+______________________________________________________________________________
 
 TASK 1
 

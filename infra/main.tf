@@ -51,11 +51,13 @@ module "bastion" {
   ami_virtualization                     = each.value.ami_virtualization
   ami_architectures                      = each.value.ami_architectures
   ami_owner_ids                          = each.value.ami_owner_ids
+  userdata                               = data.cloudinit_config.userdata_bastion[each.key].rendered
+  userdata_config                        = each.value.userdata_config
   tags                                   = each.value.tags
 }
 
-module "appserver" {
-  for_each = { for ec2 in var.ec2_appservers : coalesce(ec2.tags["Name"], "noname") => ec2 }
+module "k3s_master" {
+  for_each = { for ec2 in var.ec2_k3s_masters : coalesce(ec2.tags["Name"], "noname") => ec2 }
 
   source = "./modules/ec2"
 
@@ -80,7 +82,44 @@ module "appserver" {
   ami_virtualization                     = each.value.ami_virtualization
   ami_architectures                      = each.value.ami_architectures
   ami_owner_ids                          = each.value.ami_owner_ids
+  userdata                               = data.cloudinit_config.userdata_k3s[each.key].rendered
+  userdata_config                        = each.value.userdata_config
+  iam_policy_statements                  = each.value.iam_policy_statements
   tags                                   = each.value.tags
 }
 
+
+module "k3s_agent" {
+  for_each = { for ec2 in var.ec2_k3s_agents : coalesce(ec2.tags["Name"], "noname") => ec2 }
+
+  source = "./modules/ec2"
+
+  ec2_instance_type                      = each.value.ec2_instance_type
+  vpc_id                                 = module.vpc[each.value.vpc_cidr].vpc_id
+  subnet_id                              = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
+  associate_public_ip_address            = each.value.associate_public_ip_address
+  volume_type                            = each.value.volume_type
+  volume_size                            = each.value.volume_size
+  delete_on_termination                  = each.value.delete_on_termination
+  private_ssh_key_name                   = each.value.private_ssh_key_name
+  admin_public_ssh_key_names             = each.value.admin_public_ssh_key_names
+  enable_bastion_access                  = each.value.enable_bastion_access
+  bastion_security_group_id              = module.bastion[each.value.bastion_name].security_group_id
+  enable_ec2_instance_connect_endpoint   = each.value.enable_ec2_instance_connect_endpoint
+  ec2_connect_endpoint_security_group_id = module.ec2_instance_connect_endpoint[each.value.vpc_cidr].security_group_id
+  os                                     = each.value.os
+  os_product                             = each.value.os_product
+  os_architecture                        = each.value.os_architecture
+  os_version                             = each.value.os_version
+  os_releases                            = each.value.os_releases
+  ami_virtualization                     = each.value.ami_virtualization
+  ami_architectures                      = each.value.ami_architectures
+  ami_owner_ids                          = each.value.ami_owner_ids
+  userdata                               = data.cloudinit_config.userdata_k3s[each.key].rendered
+  userdata_config                        = each.value.userdata_config
+  iam_policy_statements                  = each.value.iam_policy_statements
+  tags                                   = each.value.tags
+
+  depends_on = [module.k3s_master]
+}
 
