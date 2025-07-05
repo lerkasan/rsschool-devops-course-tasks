@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -eou pipefail 
 
+sudo hostnamectl set-hostname node-1
+echo "127.0.1.1 node-1" | sudo tee -a /etc/hosts
+
 HOSTNAME=$(hostname -s)
 
 aws ssm put-parameter --name "${hostname_ssm_parameter_name}" \

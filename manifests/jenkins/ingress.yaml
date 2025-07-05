@@ -1,0 +1,32 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  namespace: jenkins
+  name: jenkins-ingress
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: jenkins-alb
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/group.name: jenkins-group
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:123456789012:certificate/5f7452ec-e5e4-41f4-8233-be06cdff0d7c
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    # alb.ingress.kubernetes.io/healthcheck-path: /health
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=60
+    external-dns.alpha.kubernetes.io/hostname: lerkasan.net
+spec:
+  ingressClassName: alb
+  tls:
+  - hosts:
+    - lerkasan.net
+  rules:
+    - host: lerkasan.net
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: jenkins-service
+                port:
+                  number: 8080

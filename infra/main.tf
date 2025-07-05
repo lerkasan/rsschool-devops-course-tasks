@@ -34,6 +34,7 @@ module "bastion" {
   ec2_instance_type                      = each.value.ec2_instance_type
   vpc_id                                 = module.vpc[each.value.vpc_cidr].vpc_id
   subnet_id                              = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
+  private_ip                             = each.value.private_ip
   associate_public_ip_address            = each.value.associate_public_ip_address
   volume_type                            = each.value.volume_type
   volume_size                            = each.value.volume_size
@@ -64,6 +65,7 @@ module "k3s_master" {
   ec2_instance_type                      = each.value.ec2_instance_type
   vpc_id                                 = module.vpc[each.value.vpc_cidr].vpc_id
   subnet_id                              = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
+  private_ip                             = each.value.private_ip
   associate_public_ip_address            = each.value.associate_public_ip_address
   volume_type                            = each.value.volume_type
   volume_size                            = each.value.volume_size
@@ -97,6 +99,7 @@ module "k3s_agent" {
   ec2_instance_type                      = each.value.ec2_instance_type
   vpc_id                                 = module.vpc[each.value.vpc_cidr].vpc_id
   subnet_id                              = module.vpc[each.value.vpc_cidr].subnets[each.value.subnet_cidr].id
+  private_ip                             = each.value.private_ip
   associate_public_ip_address            = each.value.associate_public_ip_address
   volume_type                            = each.value.volume_type
   volume_size                            = each.value.volume_size
@@ -123,3 +126,21 @@ module "k3s_agent" {
   depends_on = [module.k3s_master]
 }
 
+resource "aws_route53_record" "jenkins" {
+  count = var.domain_name != null ? 0 : 1
+
+  zone_id = data.aws_route53_zone.this[0].zone_id
+  name    = "jenkins.${data.aws_route53_zone.this[0].name}"
+  type    = "A"
+  ttl     = 300
+  records = [module.bastion["BastionHost"].public_ip]
+
+  lifecycle {
+    ignore_changes = [
+      zone_id,
+      multivalue_answer_routing_policy,
+      records,
+      ttl
+    ]
+  }
+}
