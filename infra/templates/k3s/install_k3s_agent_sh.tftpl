@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -eou pipefail 
 
+sudo hostnamectl set-hostname node-2
+echo "127.0.1.1 node-2" | sudo tee -a /etc/hosts
+
 # Wait for the K3s master node to write its hostname to SSM Parameter Store
 sleep 120
 
@@ -41,3 +44,15 @@ curl -sfL https://get.k3s.io | sh -
 
 unset K3S_URL
 unset K3S_TOKEN
+
+
+# # Create Jenkins home directory and set permissions
+# # This is necessary because the Jenkins container runs as a non-root user
+# runAsUser=1000
+# fsGroup=1000
+
+# mkdir -p /var/jenkins_home
+# chown -R $runAsUser:$fsGroup /var/jenkins_home
+# chmod -R g+rwX /var/jenkins_home
+
+# /data/jenkins-volume/

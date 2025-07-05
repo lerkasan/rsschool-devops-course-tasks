@@ -1,5 +1,41 @@
-resource "aws_security_group_rule" "allow_inbound_traffic_to_k3s_master_tcp_6443_from_bastion" {
+resource "aws_security_group_rule" "allow_inbound_http_to_bastion_from_admin_ip" {
+  for_each = var.admin_public_ips != null ? toset(var.admin_public_ips) : toset([])
+
+  type              = "ingress"
+  description       = "HTTP ingress"
+  from_port         = local.http_port
+  to_port           = local.http_port
+  protocol          = "tcp"
+  cidr_blocks       = [format("%s/%s", each.value, 32)]
+  security_group_id = module.bastion["BastionHost"].security_group_id
+}
+
+resource "aws_security_group_rule" "allow_inbound_traffic_to_k3s_agents_tcp_32000_from_bastion" {
   for_each = { for ec2 in var.ec2_k3s_agents : coalesce(ec2.tags["Name"], "noname") => ec2 }
+
+  type                     = "ingress"
+  description              = "k3s nodeport ingress from bastion to k3s agents"
+  from_port                = local.node_port
+  to_port                  = local.node_port
+  protocol                 = "tcp"
+  source_security_group_id = module.bastion["BastionHost"].security_group_id
+  security_group_id        = module.k3s_agent[each.key].security_group_id
+}
+
+resource "aws_security_group_rule" "allow_outbound_traffic_from_bastion_to_k3s_agents_tcp_32000" {
+  for_each = { for ec2 in var.ec2_k3s_agents : coalesce(ec2.tags["Name"], "noname") => ec2 }
+
+  type                     = "egress"
+  description              = "k3s nodeport egress from bastion to k3s agents"
+  from_port                = local.node_port
+  to_port                  = local.node_port
+  protocol                 = "tcp"
+  source_security_group_id = module.k3s_agent[each.key].security_group_id
+  security_group_id        = module.bastion["BastionHost"].security_group_id
+}
+
+resource "aws_security_group_rule" "allow_inbound_traffic_to_k3s_master_tcp_6443_from_bastion" {
+  for_each = { for ec2 in var.ec2_k3s_masters : coalesce(ec2.tags["Name"], "noname") => ec2 }
 
   type                     = "ingress"
   description              = "k3s API server ingress from bastion to k3s master"
@@ -7,7 +43,7 @@ resource "aws_security_group_rule" "allow_inbound_traffic_to_k3s_master_tcp_6443
   to_port                  = local.k3s_api_port
   protocol                 = "tcp"
   source_security_group_id = module.bastion["BastionHost"].security_group_id
-  security_group_id        = module.k3s_master["Control-Plane"].security_group_id
+  security_group_id        = module.k3s_master[each.key].security_group_id
 }
 
 resource "aws_security_group_rule" "allow_inbound_traffic_to_k3s_master_tcp_6443_from_k3s_agents" {

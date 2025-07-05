@@ -3,6 +3,7 @@ resource "aws_instance" "this" {
   ami                         = data.aws_ami.this.id
   instance_type               = var.ec2_instance_type
   subnet_id                   = var.subnet_id
+  private_ip                  = var.private_ip
   associate_public_ip_address = var.associate_public_ip_address
   key_name                    = var.private_ssh_key_name
   vpc_security_group_ids      = [aws_security_group.ec2_instance.id]

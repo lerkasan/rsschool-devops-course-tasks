@@ -17,6 +17,13 @@ variable "subnet_id" {
   default     = ""
 }
 
+variable "private_ip" {
+  description = "Private IP for the EC2 instance"
+  type        = string
+  default     = null
+}
+
+
 variable "associate_public_ip_address" {
   description = "Associate a public IP address with the EC2 instance"
   type        = bool
@@ -105,6 +112,8 @@ variable "userdata" {
   default = null
 }
 
+# This is false positive, as this variable is used.
+# tflint-ignore: terraform_unused_declarations 
 variable "userdata_config" {
   description = "Application configuration for the EC2 instance"
   type = object({

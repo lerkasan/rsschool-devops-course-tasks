@@ -77,6 +77,23 @@ data "cloudinit_config" "userdata_bastion" {
               hostname_ssm_parameter_name   = each.value.userdata_config.hostname_ssm_parameter_name,
               kubeconfig_ssm_parameter_name = each.value.userdata_config.kubeconfig_ssm_parameter_name
             })
+          },
+          {
+            "path"        = "/etc/nginx/sites-available/jenkins"
+            "permissions" = "0640"
+            "owner"       = "nginx:nginx"
+            "content" = templatefile("${path.root}/templates/nginx/nginx_jenkins_config.tftpl", {
+              domain_name          = "jenkins.${var.domain_name}",
+              node_port            = local.node_port,
+              k3s_agent_private_ip = var.ec2_k3s_agents[0].private_ip
+              # k3s_agent_private_ip = module.k3s_agent["Worker-Node-1"].private_ip # Causes cycle. TODO: Find a way to loop over k3s agents to get their private IPs. 
+            })
+          },
+          {
+            "path"        = "/tmp/configure_nginx.sh"
+            "permissions" = "0700"
+            "owner"       = "root:root"
+            "content"     = file("${path.root}/templates/nginx/configure_nginx.sh")
           }
         ]
         }
@@ -92,4 +109,11 @@ data "cloudinit_config" "userdata_bastion" {
       content      = file("${path.root}/templates/bastion/userdata.tftpl")
     }
   }
+}
+
+data "aws_route53_zone" "this" {
+  count = var.domain_name != null ? 0 : 1
+
+  name         = var.domain_name
+  private_zone = false
 }
