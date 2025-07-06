@@ -61,6 +61,11 @@ data "cloudinit_config" "userdata_bastion" {
   base64_encode = true
   gzip          = true
 
+# For debugging purposes to use the local_file resource to write the rendered userdata to a file.
+  # base64_encode = false
+  # gzip          = false
+
+
   dynamic "part" {
     for_each = each.value.userdata_config != null ? [1] : []
 
@@ -79,7 +84,13 @@ data "cloudinit_config" "userdata_bastion" {
             })
           },
           {
-            "path"        = "/etc/nginx/sites-available/jenkins"
+            "path"        = "/tmp/configure_nginx.sh"
+            "permissions" = "0700"
+            "owner"       = "root:root"
+            "content"     = file("${path.root}/templates/nginx/configure_nginx.sh")
+          },          
+          {
+            "path"        = "/tmp/nginx_jenkins_config"
             "permissions" = "0640"
             "owner"       = "nginx:nginx"
             "content" = templatefile("${path.root}/templates/nginx/nginx_jenkins_config.tftpl", {
@@ -88,12 +99,6 @@ data "cloudinit_config" "userdata_bastion" {
               k3s_agent_private_ip = var.ec2_k3s_agents[0].private_ip
               # k3s_agent_private_ip = module.k3s_agent["Worker-Node-1"].private_ip # Causes cycle. TODO: Find a way to loop over k3s agents to get their private IPs. 
             })
-          },
-          {
-            "path"        = "/tmp/configure_nginx.sh"
-            "permissions" = "0700"
-            "owner"       = "root:root"
-            "content"     = file("${path.root}/templates/nginx/configure_nginx.sh")
           }
         ]
         }
@@ -117,3 +122,9 @@ data "aws_route53_zone" "this" {
   name         = var.domain_name
   private_zone = false
 }
+
+# For debugging purposes to use the local_file resource to write the rendered userdata to a file.
+# resource "local_file" "test" {
+#   filename = "${path.root}/test.txt"
+#   content  = data.cloudinit_config.userdata_bastion["BastionHost"].rendered
+# }

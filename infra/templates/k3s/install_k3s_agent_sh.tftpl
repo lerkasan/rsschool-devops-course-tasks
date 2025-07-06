@@ -1,9 +1,6 @@
 #!/usr/bin/env bash
 set -eou pipefail 
 
-sudo hostnamectl set-hostname node-2
-echo "127.0.1.1 node-2" | sudo tee -a /etc/hosts
-
 # Wait for the K3s master node to write its hostname to SSM Parameter Store
 sleep 120
 

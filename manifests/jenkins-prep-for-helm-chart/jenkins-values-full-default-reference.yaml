@@ -219,16 +219,16 @@ controller:
   # For minikube, set this to NodePort, elsewhere uses LoadBalancer
   # Use ClusterIP if your setup includes ingress controller
   # -- k8s service type
-  serviceType: ClusterIP
+  serviceType: NodePort
 
-  # -- k8s service clusterIP. Only used if serviceType is ClusterIP
-  clusterIp:
-  # -- k8s service port
-  servicePort: 8080
-  # -- k8s target port
-  targetPort: 8080
+  # # -- k8s service clusterIP. Only used if serviceType is ClusterIP
+  # clusterIp:
+  # # -- k8s service port
+  # servicePort: 8080
+  # # -- k8s target port
+  # targetPort: 8080
   # -- k8s node port. Only used if serviceType is NodePort
-  nodePort:
+  nodePort: 32000
 
   # Use Local to preserve the client source IP and avoids a second hop for LoadBalancer and NodePort type services,
   # but risks potentially imbalanced traffic spreading.
@@ -409,6 +409,7 @@ controller:
     - workflow-aggregator:608.v67378e9d3db_1
     - git:5.7.0
     - configuration-as-code:1971.vf9280461ea_89
+    - job-dsl:1.93
 
   # If set to false, Jenkins will download the minimum required version of all dependencies.
   # -- Download the minimum required version or latest version of all dependencies
@@ -516,10 +517,16 @@ controller:
     configUrls: []
     # - https://acme.org/jenkins.yaml
     # -- List of Jenkins Config as Code scripts
-    configScripts: {}
-    #  welcome-message: |
-    #    jenkins:
-    #      systemMessage: Welcome to our CI\CD server. This Jenkins is configured and managed 'as code'.
+    configScripts:
+      jobs: |
+        jobs:
+          - script: >
+              freeStyleJob('Hello-World') {
+                description('Hello World job created via JCasC')
+                steps {
+                  shell('echo "Hello World from JCasC"')
+                }
+              }
 
     # Allows adding to the top-level security JCasC section. For legacy purposes, by default, the chart includes apiToken configurations
     # -- Jenkins Config as Code security-section
@@ -735,6 +742,7 @@ controller:
     # - secretName: jenkins.cluster.local
     #   hosts:
     #     - jenkins.cluster.local
+
 
   # often you want to have your controller all locked down and private,
   # but you still want to get webhooks from your SCM
@@ -1254,7 +1262,7 @@ persistence:
   # Requires persistence.enabled: true
   # If defined, PVC must be created manually before volume will be bound
   # -- Provide the name of a PVC
-  existingClaim:
+  existingClaim: jenkins-pv-claim
 
   # jenkins data Persistent Volume Storage Class
   # If defined, storageClassName: <storageClass>
@@ -1262,7 +1270,7 @@ persistence:
   # If undefined (the default) or set to null, no storageClassName spec is
   #   set, choosing the default provisioner (gp2 on AWS, standard on GKE, AWS & OpenStack)
   # -- Storage class for the PVC
-  storageClass: jenkins-pv
+  storageClass: local-storage
   # -- Annotations for the PVC
   annotations: {}
   # -- Labels for the PVC
@@ -1270,7 +1278,7 @@ persistence:
   # -- The PVC access mode
   accessMode: "ReadWriteOnce"
   # -- The size of the PVC
-  size: "8Gi"
+  size: "10Gi"
 
   # ref: https://kubernetes.io/docs/concepts/storage/volume-pvc-datasource/
   # -- Existing data source to clone PVC from
