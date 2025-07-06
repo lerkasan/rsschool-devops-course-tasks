@@ -16,6 +16,11 @@ if nc -zw1 google.com 443; then
   echo "we have connectivity"
 fi
 
+kubectl describe pod jenkins-0
+kubectl logs jenkins-0 -c config-reload-init -n jenkins
+kubectl logs jenkins-0 -c init -n jenkins
+https://kubernetes.io/docs/tasks/debug/debug-application/debug-init-containers/#accessing-logs-from-init-containers
+
 
 TASK 4
 
