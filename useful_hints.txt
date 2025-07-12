@@ -1,3 +1,27 @@
+TASK 5
+
+kubectl create namespace dummy-flask-app
+
+kubectl create secret generic dockerhub-credentials-secret \
+    --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+    --type=kubernetes.io/dockerconfigjson \
+    --namespace=dummy-flask-app
+
+helm lint ./flask_app/chart
+helm template ./flask_app/chart
+helm install -n dummy-flask-app -f ./flask_app/chart/values.yaml dummy-flask-app ./flask_app/chart
+helm list
+
+Option #1:
+kubectl get nodes -o wide
+http://node-internal-ip:node-port
+
+Option #2
+kubectl port-forward -n dummy-flask-app svc/dummy-flask-app-dummy-flask-app 8080:8080
+http://localhost:8080
+
+_________________________________________
+
 ssh -i ../../ssh_keys/appserver_rsschool_ssh_key_pair.pem -o ProxyCommand="ssh -i ../../ssh_keys/bastion_rsschool_ssh_key_pair.pem -W %h:%p ubuntu@54.91.195.38" ubuntu@10.1.230.231
 
 ssh tunnel for k3s api to use with kubectl on local mnachine:

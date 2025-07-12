@@ -1,3 +1,90 @@
+**TASK 5**
+
+**Prerequisites**
+
+- kubectl
+- helm v.3.x
+- virtualbox
+- minikube
+- docker
+
+**Installation**
+
+1. Build docker image:
+
+    `docker build -t lerkasan/dummy-flask-app:0.0.1 .`
+
+2. Push docker image to registry:
+
+    `docker push lerkasan/dummy-flask-app:0.0.1`
+
+3. Add information about the docker image repository,tag and sha256 to the file `flask_app/chart/values.yaml`
+
+4. Start minikube cluster:
+
+    `minikube start`
+
+5. Check the status of the minikube cluster and its nodes
+
+    `minikube status`
+
+    `kubectl get nodes`
+
+6. Create namespace for the Flask application
+
+    `kubectl create namespace dummy-flask-app`
+
+7. If your docker registry requires authentication, create secret with credentials:
+    - Run `docker login` and finish necessary login actions. Afterwards credentials will be automatically stored in the file `~/.docker/config.json`.
+
+    - Create a secret `dockerhub-credentials-secret` with registry credentials in `dummy-flask-app` namespace:
+
+          kubectl create secret generic dockerhub-credentials-secret \
+            --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+            --type=kubernetes.io/dockerconfigjson \
+            --namespace=dummy-flask-app
+
+8. Install the Flask application in `dummy-flask-app` namespace via helm chart from the directory `flask_app/chart`:
+
+    `helm install -n dummy-flask-app -f ./flask_app/chart/values.yaml dummy-flask-app ./flask_app/chart`
+
+9. Verify that the Flask application is installed:
+
+    `helm list`
+
+    `kubectl get pods -n dummy-flask-app`
+
+    `kubectl get svc -n dummy-flask-app`
+
+10. Access the Flask application in the browser:
+
+*Option 1:*
+  - Run `kubectl port-forward -n dummy-flask-app svc/dummy-flask-app-dummy-flask-app 8080:8080`
+  - Open `http://localhost:8080` in the browser
+
+*Option 2:*
+  - Run `kubectl get nodes -o wide` and fing Internal IP of the node.
+  - Find a value for the variable service.nodePort in `flask_app/chart/values.yaml` file. The current value of the mentioned variable is 30080.
+  - Open `http://node-internal-ip:node-port` in the browser.
+    For example, `http://192.168.59.100:30080`
+
+**Clean up**
+
+1. Uninstall `dummy-flask-app` chart
+
+`helm uninstall dummy-flask-app -n dummy-flask-app`
+
+2. Delete `dummy-flask-app` namespace
+
+    `kubectl delete ns dummy-flask-app`
+
+3. Delete minikube cluster
+
+    `minikube delete`
+
+
+______________________________________________________________
+
 **TASK 4**
 
 **Prerequisites**
@@ -79,7 +166,7 @@ Minikube configured for hostPath sets the permissions on /data to the root accou
 
     Open address `http://localhost:8080` in the browser and login with username `admin` and password from the previous step.
 
-** Clean up**
+**Clean up**
 
 1. Delete minikube cluster
 
