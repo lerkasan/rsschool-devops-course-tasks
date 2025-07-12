@@ -41,3 +41,15 @@ curl -sfL https://get.k3s.io | sh -
 
 unset K3S_URL
 unset K3S_TOKEN
+
+
+# # Create Jenkins home directory and set permissions
+# # This is necessary because the Jenkins container runs as a non-root user
+# runAsUser=1000
+# fsGroup=1000
+
+# mkdir -p /var/jenkins_home
+# chown -R $runAsUser:$fsGroup /var/jenkins_home
+# chmod -R g+rwX /var/jenkins_home
+
+# /data/jenkins-volume/

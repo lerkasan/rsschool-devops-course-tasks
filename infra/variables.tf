@@ -66,6 +66,7 @@ variable "ec2_k3s_masters" {
     ec2_instance_type                    = string
     vpc_cidr                             = string
     subnet_cidr                          = string
+    private_ip                           = optional(string, null)
     associate_public_ip_address          = optional(bool, false)
     bastion_name                         = optional(string, "")
     volume_type                          = optional(string, "gp3")
@@ -111,6 +112,7 @@ variable "ec2_k3s_agents" {
     ec2_instance_type                    = string
     vpc_cidr                             = string
     subnet_cidr                          = string
+    private_ip                           = optional(string, null)
     associate_public_ip_address          = optional(bool, false)
     bastion_name                         = optional(string, "")
     volume_type                          = optional(string, "gp3")
@@ -157,6 +159,7 @@ variable "ec2_bastions" {
     ec2_instance_type                    = string
     vpc_cidr                             = string
     subnet_cidr                          = string
+    private_ip                           = optional(string, null)
     associate_public_ip_address          = optional(bool, false)
     volume_type                          = optional(string, "gp3")
     volume_size                          = optional(number, 10)
@@ -207,4 +210,10 @@ variable "admin_public_ips" {
   description = "List of admin public IPs to allow SSH access"
   type        = list(string)
   default     = []
+}
+
+variable "domain_name" {
+  description = "Domain name for Jenkins"
+  type        = string
+  default     = null
 }

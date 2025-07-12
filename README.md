@@ -1,3 +1,91 @@
+**TASK 4**
+
+**Prerequisites**
+
+- kubectl
+- helm v.3.x
+- virtualbox
+- minikube
+
+**Features**
+- Jenkins data is stored on persistent volume to avoid data loss when pods are terminated
+- Jenkins is configured using JCasC via `jenkins-values.yaml` file
+- Security and SecurityRealm settings are preconfigured in JCasC
+- Freestyle job named "Hello World" is created using JCasC
+- JPlugins are configured in `jenkins-values.yaml` file including `job-dsl` plugin needed to create a job that was configured via JCasC
+
+**Installation**
+
+1. Create minikube cluster:
+
+    `minikube start --driver=virtualbox`
+
+2. Enable storage class and provisioner
+
+    `minikube addons enable default-storageclass`
+
+    `minikube addons enable storage-provisioner`
+
+3. Check the status of the minikube cluster and its nodes
+
+    `minikube status`
+
+    `kubectl get nodes`
+
+4. Create namespace for jenkins
+
+    `kubectl apply -f manifests/jenkins-minikube-prep-for-helm-chart/namespace.yaml`
+
+5. Create service account for jenkins
+
+    `kubectl apply -f manifests/jenkins-minikube-prep-for-helm-chart/serviceAccount.yaml`
+
+6. Create volume claim and volume for jenkins
+
+    `kubectl apply -f manifests/jenkins-minikube-prep-for-helm-chart/volume.yaml`
+
+In the above spec, hostPath uses the /data/jenkins-volume/ of your node to emulate network-attached storage. This approach is only suited for development and testing purposes.
+
+Minikube configured for hostPath sets the permissions on /data to the root account only. Once the volume is created you will need to manually change the permissions to allow the jenkins account to write its data.
+
+7. Change permissions to allow the jenkins account to write its data on volume
+
+    `minikube ssh`
+
+    `sudo chown -R 1000:1000 /data/jenkins-volume`
+
+8. Add Helm repository iwith Jenkins
+
+    `helm repo add jenkins https://charts.jenkins.io`
+
+    `helm repo update`   
+
+9. Install Jenkins via Helm chart using custom values form a file
+
+    `helm install jenkins -n jenkins -f manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins`
+
+
+10. Check that Jenkins pods are running successfully and service resource exists for Jenkins  
+
+    `kubectl get pods -n jenkins`
+
+    `kubectl get svc -n jenkins`
+
+11. To access Jenkins obtain admin password from a secret
+    `kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo`   
+
+12. Use port-forwarding to make Jenkins available in the browser    
+    `kubectl port-forward -n jenkins svc/jenkins 8080:8080`
+
+    Open address `http://localhost:8080` in the browser and login with username `admin` and password from the previous step.
+
+** Clean up**
+
+1. Delete minikube cluster
+
+    `minikube delete`
+______________________________________________________________________________
+
 **TASK 3**
 
 **How to run this code**

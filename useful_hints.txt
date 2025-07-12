@@ -1,5 +1,11 @@
 ssh -i ../../ssh_keys/appserver_rsschool_ssh_key_pair.pem -o ProxyCommand="ssh -i ../../ssh_keys/bastion_rsschool_ssh_key_pair.pem -W %h:%p ubuntu@54.91.195.38" ubuntu@10.1.230.231
 
+ssh tunnel for k3s api to use with kubectl on local mnachine:
+ssh -i bastion_rsschool_ssh_key_pair.pem -L 6443:k3s_master_ip:6443 ubuntu@bastion_ip -N &
+ssh -i bastion_rsschool_ssh_key_pair.pem -L 6443:10.1.240.251:6443 ubuntu@34.228.244.136 -N &
+Add kubeconfig to ~/.kube/config on the local machine and inside this config replace k3s_master_ip with 127.0.0.1
+Now run `kubectl get nodes` on local machine.
+
 aws sts decode-authorization-message --encoded-message KDmmJmkLKm...iUtfAa --output text | jq '.'
 
 tflint --minimum-failure-severity=notice --recursive --config $(pwd)/.tflint.hcl
@@ -9,3 +15,69 @@ curl -Is https://www.google.com || head -n 15
 if nc -zw1 google.com 443; then
   echo "we have connectivity"
 fi
+
+kubectl describe pod jenkins-0
+kubectl logs jenkins-0 -c config-reload-init -n jenkins
+kubectl logs jenkins-0 -c init -n jenkins
+https://kubernetes.io/docs/tasks/debug/debug-application/debug-init-containers/#accessing-logs-from-init-containers
+
+
+TASK 4
+
+
+helm repo add jenkinsci https://charts.jenkins.io
+helm repo update
+helm install jenkins -n jenkins -f jenkins-values.yaml jenkinsci/jenkins
+
+helm uninstall jenkins -n jenkins
+
+Get your 'admin' user password by running:
+
+jsonpath="{.data.jenkins-admin-password}"
+secret=$(kubectl get secret -n jenkins jenkins -o jsonpath=$jsonpath)
+echo $(echo $secret | base64 --decode)
+
+
+
+Get the Jenkins URL to visit by running these commands in the same shell:
+
+jsonpath="{.spec.ports[0].nodePort}"
+NODE_PORT=$(kubectl get -n jenkins -o jsonpath=$jsonpath services jenkins)
+jsonpath="{.items[0].status.addresses[0].address}"
+NODE_IP=$(kubectl get nodes -n jenkins -o jsonpath=$jsonpath)
+echo http://$NODE_IP:$NODE_PORT/login
+
+
+
+kubectl -n jenkins port-forward <pod_name> 8080:8080
+Forwarding from 127.0.0.1:8080 -> 8080
+Forwarding from [::1]:8080 -> 8080
+
+
+
+
+NAME: jenkins
+LAST DEPLOYED: Sat Jul  5 17:45:22 2025
+NAMESPACE: jenkins
+STATUS: deployed
+REVISION: 1
+NOTES:
+1. Get your 'admin' user password by running:
+  kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
+2. Get the Jenkins URL to visit by running these commands in the same shell:
+  export NODE_PORT=$(kubectl get --namespace jenkins -o jsonpath="{.spec.ports[0].nodePort}" services jenkins)
+  export NODE_IP=$(kubectl get nodes --namespace jenkins -o jsonpath="{.items[0].status.addresses[0].address}")
+  echo http://$NODE_IP:$NODE_PORT
+
+3. Login with the password from step 1 and the username: admin
+4. Configure security realm and authorization strategy
+5. Use Jenkins Configuration as Code by specifying configScripts in your values.yaml file, see documentation: http://$NODE_IP:$NODE_PORT/configuration-as-code and examples: https://github.com/jenkinsci/configuration-as-code-plugin/tree/master/demos
+
+For more information on running Jenkins on Kubernetes, visit:
+https://cloud.google.com/solutions/jenkins-on-container-engine
+
+For more information about Jenkins Configuration as Code, visit:
+https://jenkins.io/projects/jcasc/
+
+
+NOTE: Consider using a custom image with pre-installed plugins

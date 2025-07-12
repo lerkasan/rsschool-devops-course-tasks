@@ -1,0 +1,11 @@
+server {
+    listen 80;
+    listen [::]:80;
+
+    server_name ${domain_name} www.${domain_name};
+        
+    location / {
+        proxy_pass http://${k3s_agent_private_ip}:${node_port};
+        include proxy_params;
+    }
+}
