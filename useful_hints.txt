@@ -1,3 +1,23 @@
+TASK 6
+
+helm upgrade jenkins -n jenkins -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins
+
+kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
+
+kubectl port-forward -n jenkins svc/jenkins 8080:8080
+
+kubectl describe $(kubectl get all -n jenkins | grep python | awk '{print $1}') -n jenkins
+kubectl logs $(kubectl get all -n jenkins | grep python | awk '{print $1}' | cut -d '/' -f 2) -n jenkins
+
+kubectl exec -it pod/dind-agent-qnt4n -c jnlp -n jenkins -- /bin/sh
+kubectl exec -it pod/dind-agent-qnt4n -c jnlp -n jenkins -- java -version
+
+kubectl exec -it $(kubectl get all -n jenkins | grep python | awk '{print $1}') -c jnlp -n jenkins -- java -version
+kubectl exec -it $(kubectl get all -n jenkins | grep python | awk '{print $1}') -n jenkins -- java -version
+
+docker run --rm --entrypoint="java -version" jenkins/jnlp-agent-python3
+docker run --rm -it --entrypoint="/bin/sh" jenkins/jnlp-agent-python3
+
 TASK 5
 
 kubectl create namespace dummy-flask-app

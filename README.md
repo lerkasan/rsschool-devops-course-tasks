@@ -105,7 +105,7 @@ ______________________________________________________________
 
 1. Create minikube cluster:
 
-    `minikube start --driver=virtualbox`
+    `minikube start --driver=virtualbox --cpus=8 --memory=8g`
 
 2. Enable storage class and provisioner
 
@@ -138,6 +138,8 @@ Minikube configured for hostPath sets the permissions on /data to the root accou
 7. Change permissions to allow the jenkins account to write its data on volume
 
     `minikube ssh`
+
+    `sudo mkdir /data/jenkins-volume`
 
     `sudo chown -R 1000:1000 /data/jenkins-volume`
 

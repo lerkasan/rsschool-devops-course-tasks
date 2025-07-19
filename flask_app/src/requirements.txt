@@ -1,2 +1,4 @@
 Flask
 uwsgi
+pytest
+coverage
