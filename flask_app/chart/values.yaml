@@ -1,0 +1,77 @@
+namespace: dummy-flask-app
+replicaCount: 2
+labels:
+  app: dummy-flask-app
+  tier: backend
+selectorLabels:
+  app: dummy-flask-app
+  tier: backend
+podLabels:
+  app: dummy-flask-app
+  tier: backend
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 50%
+    maxUnavailable: 50%
+restartPolicy: Always
+image:
+  repository: lerkasan/dummy-flask-app
+  tag: 0.0.3
+  sha256: sha256:c29787d8a56bd3b970641826a720a6881655c0d003477c691e46e9973031d0da
+  pullPolicy: IfNotPresent
+imagePullSecrets: [{ name: dockerhub-credentials-secret }]
+containerName: backend
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 256Mi
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  seccompProfile:
+    type: RuntimeDefault
+podSecurityContext:
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
+  allowPrivilegeEscalation: false
+  seccompProfile:
+    type: RuntimeDefault
+  capabilities:
+    drop:
+      - ALL
+# For future reference, uncomment to use environment variables from ConfigMap or Secret      
+# envFrom:
+#   - configMapRef:
+#       name: my-config
+#   - secretRef: 
+#       name: my-secret
+
+service:
+  type: NodePort
+  port: 8080
+  nodePort: 30080
+livenessProbe:
+  httpGet:
+    port: 8080
+    path: /
+    scheme: HTTP
+  initialDelaySeconds: 60
+  periodSeconds: 60
+  timeoutSeconds: 15
+  failureThreshold: 5
+readinessProbe:
+  httpGet:
+    port: 8080
+    path: /
+    scheme: HTTP
+  initialDelaySeconds: 60
+  periodSeconds: 60
+  timeoutSeconds: 15
+  failureThreshold: 5

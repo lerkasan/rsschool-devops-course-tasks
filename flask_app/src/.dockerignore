@@ -1,0 +1,7 @@
+Dockerfile*
+compose*.yml
+.env
+*.env
+.gitignore
+.dockerignore
+README.md
