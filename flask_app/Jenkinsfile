@@ -1,29 +1,72 @@
 pipeline {
-    agent any
+    agent { 
+        label 'dind' 
+    }
+
+    // agent none
 
     environment {
-        IMAGE_NAME = "flask-app"
-        IMAGE_TAG = "${env.BUILD_NUMBER}"
+        GIT_COMMIT_SHA = sh (script: "git log -n 1 --pretty=format:'%H'", returnStdout: true).trim()
+        GIT_COMMIT_SHORT_SHA = sh (script: "git rev-parse --short HEAD", returnStdout: true).trim()
+        IMAGE_NAME = "dummy-flask-app"
+        IMAGE_TAG = "${GIT_COMMIT_SHORT_SHA}-${env.BUILD_NUMBER}"
         REGISTRY = "docker.io/lerkasan"
     }
 
     stages {
         stage('Checkout') {
+            agent { 
+                label 'python' 
+            }
             steps {
-                git credentialsId: 'github', url: 'https://github.com/lerkasan/rsschool-devops-course-tasks.git'
+                git url: 'https://github.com/lerkasan/dummy-flask-app.git',
+                    credentialsId: 'github',
+                    branch: 'main'
             }
         }
 
+        stage('Test') {
+            agent { 
+                label 'python' 
+            }
+
+            steps {
+                    sh '''
+                    pip3 install -r src/requirements.txt
+                    pytest tests/ --doctest-modules --junitxml=test-results.xml
+                    coverage run -m pytest
+                    coverage xml
+                    '''
+
+                    junit 'test-results.xml'
+
+                    recordCoverage(tools: [[parser: 'JACOCO']],
+                    id: 'jacoco', name: 'Coverage',
+                    sourceCodeRetention: 'EVERY_BUILD',
+                    sourceDirectories: [[path: 'src']],
+                    qualityGates: [
+                        [threshold: 60.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
+                    ])
+            }
+        }    
+
         stage('Build Docker Image') {
+            agent { 
+                label 'dind' 
+            }
             steps {
                 sh '''
-                cd flask_app/src
+                cd src
+                sleep 20
                 docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
                 '''
             }
         }
 
         stage('Push Docker Image') {
+            agent { 
+                label 'dind' 
+            }
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
                     sh '''
