@@ -150,6 +150,13 @@ additionalAgents:
       repository: lerkasan/jnlp-agent-python3
       tag: "jdk21"
     alwaysPullImage: true
+    resources:
+      requests:
+        cpu: "1024m"
+        memory: "1024Mi"
+      limits:
+        cpu: "2048m"
+        memory: "4096Mi"
 
 persistence:
   enabled: true

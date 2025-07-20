@@ -3,14 +3,16 @@ pipeline {
         label 'dind' 
     }
 
-    // agent none
-
     environment {
         GIT_COMMIT_SHA = sh (script: "git log -n 1 --pretty=format:'%H'", returnStdout: true).trim()
         GIT_COMMIT_SHORT_SHA = sh (script: "git rev-parse --short HEAD", returnStdout: true).trim()
         IMAGE_NAME = "dummy-flask-app"
         IMAGE_TAG = "${GIT_COMMIT_SHORT_SHA}-${env.BUILD_NUMBER}"
         REGISTRY = "docker.io/lerkasan"
+        APP_NAMESPACE = "dummy-flask-app"
+        SONAR_ORGANIZATION = "lerkasan"
+        SONAR_PROJECT_KEY = "lerkasan_rsschool-devops-course-tasks"
+        SONAR_HOST_URL = "https://sonarcloud.io"
     }
 
     stages {
@@ -30,7 +32,7 @@ pipeline {
                 label 'python' 
             }
 
-            steps {
+            steps {  
                     sh '''
                     pip3 install -r src/requirements.txt
                     pytest tests/ --doctest-modules --junitxml=test-results.xml
@@ -40,41 +42,81 @@ pipeline {
 
                     junit 'test-results.xml'
 
-                    recordCoverage(tools: [[parser: 'JACOCO']],
-                    id: 'jacoco', name: 'Coverage',
-                    sourceCodeRetention: 'EVERY_BUILD',
-                    sourceDirectories: [[path: 'src']],
-                    qualityGates: [
-                        [threshold: 60.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
-                    ])
-            }
+                    // recordCoverage(tools: [[parser: 'JACOCO']],
+                    // id: 'jacoco', name: 'Coverage',
+                    // sourceCodeRetention: 'EVERY_BUILD',
+                    // sourceDirectories: [[path: 'src']],
+                    // qualityGates: [
+                    //     [threshold: 60.0, metric: 'BRANCH', baseline: 'PROJECT', unstable: true]
+                    // ])
+
+                    withCredentials([string(credentialsId: 'sonarqube', variable: 'SONAR_TOKEN')]) { 
+                    sh '''
+                    sonar-scanner -Dsonar.organization="${SONAR_ORGANIZATION}" \
+                                  -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
+                                  -Dsonar.sources=./src \
+                                  -Dsonar.host.url=${SONAR_HOST_URL} \
+                                  -Dsonar.login="${SONAR_TOKEN}" \
+                                  -Dsonar.qualitygate.wait=true
+                    '''
+                }
+            }    
+
         }    
 
         stage('Build Docker Image') {
-            agent { 
-                label 'dind' 
-            }
             steps {
-                sh '''
-                cd src
-                sleep 20
-                docker build -t $REGISTRY/$IMAGE_NAME:$IMAGE_TAG .
-                '''
+                // Adding sleep to ensure Docker Daemon is ready in dind container
+                sh 'sleep 10'
+                sh 'docker build -t "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" ./src'
             }
         }
 
         stage('Push Docker Image') {
-            agent { 
-                label 'dind' 
-            }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'REGISTRY_USERNAME', passwordVariable: 'REGISTRY_PASSWORD')]) {
+                // Adding sleep to ensure Docker Daemon is ready in dind container
+                sh 'sleep 10'
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub', 
+                        usernameVariable: 'REGISTRY_USERNAME', 
+                        passwordVariable: 'REGISTRY_PASSWORD'
+                )]) {
                     sh '''
-                    echo "$REGISTRY_PASSWORD" | docker login -u "$REGISTRY_USERNAME" --password-stdin
-                    docker push $REGISTRY/$IMAGE_NAME:$IMAGE_TAG
+                    echo "${REGISTRY_PASSWORD}" | docker login -u "${REGISTRY_USERNAME}" --password-stdin
+                    docker push "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}"
                     '''
+                }
+
+                script {
+                    image_sha = sh(script: 'docker inspect --format="{{index .RepoDigests 0}}" "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" | cut -d "@" -f 2', returnStdout: true).trim()
                 }
             }
         }
+
+        stage('Deploy') {
+            agent { 
+                label 'python' 
+            }
+            environment {
+                IMAGE_SHA = "${image_sha}"
+            }
+            steps {
+                withCredentials([
+                usernamePassword(
+                  credentialsId: 'dockerhub',
+                  usernameVariable: 'REGISTRY_USERNAME', 
+                  passwordVariable: 'REGISTRY_PASSWORD'
+                )
+              ]) {  
+                    sh '''
+                    helm ls
+                    helm upgrade --install --set image.tag="${IMAGE_TAG}" --set image.sha256="${IMAGE_SHA}" --create-namespace --namespace "${APP_NAMESPACE}" -f ./chart/values.yaml dummy-flask-app ./chart
+                    '''
+                }    
+            }
+        }            
     }
 }
+
+

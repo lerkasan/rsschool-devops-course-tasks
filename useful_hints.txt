@@ -1,6 +1,26 @@
 TASK 6
 
+https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test-coverage/
+
+docker build -t lerkasan/jnlp-agent-python3:jdk21 .
+docker push lerkasan/jnlp-agent-python3:jdk21
+
+kubectl create secret generic dockerhub-credentials-secret \
+  --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+  --type=kubernetes.io/dockerconfigjson \
+  --namespace=dummy-flask-app
+
 helm upgrade jenkins -n jenkins -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins
+
+kubectl port-forward -n dummy-flask-app svc/dummy-flask-app-dummy-flask-app 8000:8080
+
+helm get values --namespace dummy-flask-app dummy-flask-app
+
+!!! Don't forget to turn off Automatic Analysis in SonarQube project !!!
+https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test-coverage/
+
+kubectl config view
+
 
 kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
 
