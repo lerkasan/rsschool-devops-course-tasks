@@ -4,11 +4,6 @@ controller:
     registry: "docker.io"
     repository: "jenkins/jenkins"
     tag: 2.504.3-lts-jdk21
-    # tag: 2.504.3-lts-jdk17
-    # tag: 2.504.3-lts-jdk21
-    # tag: 2.519-alpine-jdk17
-    # tag: alpine3.22-jdk21
-    # tag: 2.517-jdk21
     pullPolicy: "Always"
 
   admin:
@@ -17,7 +12,6 @@ controller:
     # -- Admin password created as a secret if `controller.admin.createSecret` is true
     # @default -- <random password>
     password:
-    # password: ${JENKINS_PASSWORD}
 
     # -- The key in the existing admin secret containing the username
     userKey: jenkins-admin-user
@@ -62,9 +56,6 @@ controller:
     - job-dsl:1.93
     - junit:1335.v6b_a_a_e18534e1
     - coverage:2.7.1
-    # - docker-plugin:1274.vc0203fdf2e74
-    # - docker-commons:457.v0f62a_94f11a_3
-    # - docker-workflow:621.va_73f881d9232
     - pipeline-graph-view:600.vc287d1a_d4b_47
     - pipeline-stage-view:2.38
     - credentials:1415.v831096eb_5534
@@ -75,12 +66,7 @@ controller:
 
   installLatestPlugins: true
 
-  # existingSecret:
-  #   - name: jcasc-secret
-  #     keyName: github_token
-
   # ref: https://github.com/jenkinsci/configuration-as-code-plugin/blob/master/docs/features/secrets.adoc#kubernetes-secrets
-  # additionalExistingSecrets:
   additionalExistingSecrets:
     - name: jcasc-secrets
       keyName: github-username
@@ -167,18 +153,6 @@ controller:
       loggedInUsersCanDoAnything:
         allowAnonymousRead: false
 
-    credentials: |-
-      credentials:
-        system:
-          domainCredentials:
-            - credentials:
-                - usernamePassword:
-                    id: "test"
-                    scope: GLOBAL
-                    username: "userme"
-                    password: "superpassword"
-                    description: "default credentials for testing purposes"
-
 agent:
   enabled: true
   image:
@@ -222,8 +196,6 @@ additionalAgents:
     customJenkinsLabels: python
     # sideContainerName: python
     image:
-      # repository: python
-      # tag: "3.13-alpine3.22"
       # repository: jenkins/jnlp-agent-python3 # based on alpine + busybox, has java openjdk-11 as default
       repository: lerkasan/jnlp-agent-python3
       tag: "jdk21"
