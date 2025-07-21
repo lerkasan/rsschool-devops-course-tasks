@@ -22,7 +22,7 @@
 
 4. Start minikube cluster:
 
-    `minikube start`
+    `minikube start --driver=virtualbox --cpus=8 --memory=8g`
 
 5. Check the status of the minikube cluster and its nodes
 
@@ -121,15 +121,15 @@ ______________________________________________________________
 
 4. Create namespace for jenkins
 
-    `kubectl apply -f manifests/jenkins-minikube-prep-for-helm-chart/namespace.yaml`
+    `kubectl apply -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/namespace.yaml`
 
 5. Create service account for jenkins
 
-    `kubectl apply -f manifests/jenkins-minikube-prep-for-helm-chart/serviceAccount.yaml`
+    `kubectl apply -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/serviceAccount.yaml`
 
 6. Create volume claim and volume for jenkins
 
-    `kubectl apply -f manifests/jenkins-minikube-prep-for-helm-chart/volume.yaml`
+    `kubectl apply -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/volume.yaml`
 
 In the above spec, hostPath uses the /data/jenkins-volume/ of your node to emulate network-attached storage. This approach is only suited for development and testing purposes.
 
@@ -151,7 +151,7 @@ Minikube configured for hostPath sets the permissions on /data to the root accou
 
 9. Install Jenkins via Helm chart using custom values form a file
 
-    `helm install jenkins -n jenkins -f manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins`
+    `helm install jenkins -n jenkins -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins`
 
 
 10. Check that Jenkins pods are running successfully and service resource exists for Jenkins  

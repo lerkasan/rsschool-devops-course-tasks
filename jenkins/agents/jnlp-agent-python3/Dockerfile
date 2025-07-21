@@ -11,7 +11,7 @@ ENV SONAR_SCANNER_HOME="$HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux-
 ENV PATH="$SONAR_SCANNER_HOME/bin:$PATH"
 ENV SONAR_SCANNER_OPTS="-server"
 
-RUN apk add --no-cache helm "openjdk${OPENJDK_MAJOR_VERSION}" unzip && \
+RUN apk add --no-cache helm "openjdk${OPENJDK_MAJOR_VERSION}" unzip yq && \
   wget -q -O /tmp/sonar-scanner-cli.zip "${SONAR_SCANNER_URL}" && \
   mkdir "$HOME/.sonar" && \
   unzip -o /tmp/sonar-scanner-cli.zip -d "$HOME/.sonar/" && \

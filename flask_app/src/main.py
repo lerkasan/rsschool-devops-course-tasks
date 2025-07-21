@@ -5,4 +5,4 @@ app = Flask(__name__)
 
 @app.route('/')
 def hello():
-    return 'Hello, World updated again!'
+    return 'Hello, World was updated twice!'

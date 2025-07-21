@@ -1,18 +1,46 @@
+TO READ:
+
+https://polarsquad.com/blog/check-your-helm-deployments
+https://chrisharwell94.medium.com/options-available-for-health-checks-with-helm-charts-b139f26f70aa
+https://www.sergiosanchez.com/posts/email-setup/
+https://medium.com/geekculture/jenkins-pipeline-python-and-docker-altogether-442d38119484
+
+
 TASK 6
+
+minikube start --driver=virtualbox --cpus=8 --memory=8g
 
 https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test-coverage/
 
-docker build -t lerkasan/jnlp-agent-python3:jdk21 .
+docker build -t lerkasan/jnlp-agent-python3:jdk21 ./jenkins/agents/jnlp-agent-python3/
 docker push lerkasan/jnlp-agent-python3:jdk21
+
+kubectl create ns dummy-flask-app
 
 kubectl create secret generic dockerhub-credentials-secret \
   --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
   --type=kubernetes.io/dockerconfigjson \
   --namespace=dummy-flask-app
 
-helm upgrade jenkins -n jenkins -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins
+kubectl create secret generic jcasc-secrets --from-env-file=.env -n jenkins
+
+kubectl create secret generic dockerhub-credentials-secret \
+    --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+    --type=kubernetes.io/dockerconfigjson \
+    --namespace=jenkins
+
+kubectl create namespace dummy-flask-app
+
+kubectl create secret generic dockerhub-credentials-secret \
+    --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+    --type=kubernetes.io/dockerconfigjson \
+    --namespace=dummy-flask-app
+
+helm upgrade --install --create-namespace jenkins --namespace jenkins -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins
 
 kubectl port-forward -n dummy-flask-app svc/dummy-flask-app-dummy-flask-app 8000:8080
+
+kubectl port-forward -n jenkins svc/jenkins 8080:8080
 
 helm get values --namespace dummy-flask-app dummy-flask-app
 
@@ -21,6 +49,9 @@ https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test
 
 kubectl config view
 
+
+curl http://dummy-flask-app-dummy-flask-app.dummy-flask-app.svc.cluster.local:8080
+curl "${HELM_RELEASE_NAME}-$(yq -r .name ./chart/Chart.yaml).${APP_NAMESPACE}.svc.cluster.local:8080"
 
 kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
 
@@ -35,8 +66,14 @@ kubectl exec -it pod/dind-agent-qnt4n -c jnlp -n jenkins -- java -version
 kubectl exec -it $(kubectl get all -n jenkins | grep python | awk '{print $1}') -c jnlp -n jenkins -- java -version
 kubectl exec -it $(kubectl get all -n jenkins | grep python | awk '{print $1}') -n jenkins -- java -version
 
+kubectl exec -it pod/jenkins-0 -c jenkins -n jenkins -- /bin/sh
+
 docker run --rm --entrypoint="java -version" jenkins/jnlp-agent-python3
 docker run --rm -it --entrypoint="/bin/sh" jenkins/jnlp-agent-python3
+
+
+helm history dummy-flask-app -n dummy-flask-app
+helm status dummy-flask-app -n dummy-flask-app
 
 TASK 5
 
@@ -46,6 +83,7 @@ kubectl create secret generic dockerhub-credentials-secret \
     --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
     --type=kubernetes.io/dockerconfigjson \
     --namespace=dummy-flask-app
+    
 
 helm lint ./flask_app/chart
 helm template ./flask_app/chart

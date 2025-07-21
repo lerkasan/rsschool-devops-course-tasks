@@ -2,5 +2,5 @@ apiVersion: v2
 name: dummy-flask-app
 description: Dummy Flask App chart
 type: application
-version: 0.0.1 # chart version
-appVersion: "0.0.1" # application version
+version: 0.0.3 # chart version
+appVersion: "0.0.3" # application version

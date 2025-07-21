@@ -17,6 +17,7 @@ controller:
     # -- Admin password created as a secret if `controller.admin.createSecret` is true
     # @default -- <random password>
     password:
+    # password: ${JENKINS_PASSWORD}
 
     # -- The key in the existing admin secret containing the username
     userKey: jenkins-admin-user
@@ -61,24 +62,89 @@ controller:
     - job-dsl:1.93
     - junit:1335.v6b_a_a_e18534e1
     - coverage:2.7.1
-    - docker-plugin:1274.vc0203fdf2e74
-    - docker-commons:457.v0f62a_94f11a_3
-    - docker-workflow:621.va_73f881d9232
+    # - docker-plugin:1274.vc0203fdf2e74
+    # - docker-commons:457.v0f62a_94f11a_3
+    # - docker-workflow:621.va_73f881d9232
+    - pipeline-graph-view:600.vc287d1a_d4b_47
+    - pipeline-stage-view:2.38
+    - credentials:1415.v831096eb_5534
+    - credentials-binding:696.v256688029804
+    - plain-credentials:199.v9f8e1f741799
+    - email-ext:1916.vc954a_f86ff21
+    - ws-cleanup:0.48
 
   installLatestPlugins: true
+
+  # existingSecret:
+  #   - name: jcasc-secret
+  #     keyName: github_token
+
+  # ref: https://github.com/jenkinsci/configuration-as-code-plugin/blob/master/docs/features/secrets.adoc#kubernetes-secrets
+  # additionalExistingSecrets:
+  additionalExistingSecrets:
+    - name: jcasc-secrets
+      keyName: github-username
+    - name: jcasc-secrets
+      keyName: github-token
+    - name: jcasc-secrets
+      keyName: dockerhub-username
+    - name: jcasc-secrets
+      keyName: dockerhub-token
+    - name: jcasc-secrets
+      keyName: sonarqube-token
+    - name: jcasc-secrets
+      keyName: smtp-username
+    - name: jcasc-secrets
+      keyName: smtp-password
 
   JCasC:
     defaultConfig: true
     configScripts:
-      jobs: |
+      jcasc-configs: |
         jobs:
           - script: >
-              freeStyleJob('Hello-World') {
-                description('Hello World job created via JCasC')
-                steps {
-                  shell('echo "Hello World from JCasC"')
+              pipelineJob('dummy-flask-app') {
+                triggers {
+                  scm('H/5 * * * *')
+                }
+                definition {
+                  cpsScm {
+                    scm {
+                      git {
+                        remote {
+                          url('https://github.com/lerkasan/dummy-flask-app.git')
+                          credentials('github')
+                        }
+                        branch('*/main')
+                      }
+                    }
+                    lightweight()
+                  }
                 }
               }
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      id: "github"
+                      scope: GLOBAL
+                      username: "${jcasc-secrets-github-username}"
+                      password: "${jcasc-secrets-github-token}"
+                  - usernamePassword:
+                      id: "dockerhub"
+                      scope: GLOBAL
+                      username: "${jcasc-secrets-dockerhub-username}"
+                      password: "${jcasc-secrets-dockerhub-token}"
+                  - usernamePassword:
+                      id: "smtp"
+                      scope: GLOBAL
+                      username: "${jcasc-secrets-smtp-username}"
+                      password: "${jcasc-secrets-smtp-password}"
+                  - string:
+                      id: "sonarqube"
+                      scope: GLOBAL
+                      secret: "${jcasc-secrets-sonarqube-token}"
 
     security:
       apiToken:
@@ -100,6 +166,18 @@ controller:
     authorizationStrategy: |-
       loggedInUsersCanDoAnything:
         allowAnonymousRead: false
+
+    credentials: |-
+      credentials:
+        system:
+          domainCredentials:
+            - credentials:
+                - usernamePassword:
+                    id: "test"
+                    scope: GLOBAL
+                    username: "userme"
+                    password: "superpassword"
+                    description: "default credentials for testing purposes"
 
 agent:
   enabled: true
