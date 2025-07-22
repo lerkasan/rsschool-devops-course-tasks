@@ -75,6 +75,52 @@ docker run --rm -it --entrypoint="/bin/sh" jenkins/jnlp-agent-python3
 helm history dummy-flask-app -n dummy-flask-app
 helm status dummy-flask-app -n dummy-flask-app
 
+
+https://github.com/jenkinsci/email-ext-plugin/blob/main/src/test/resources/configuration-as-code.yml
+
+unclassified:
+  email-ext:
+    defaultSuffix: "@domain.extension"
+    addAccounts:
+      - address: "foo.bar"
+        smtpHost: "smtp-host"
+        smtpPort: "1234"
+        credentialsId: "credentials-id"
+        useSsl: true
+        useTls: true
+        advProperties: "avd-properties"
+    charset: "UTF-8"
+    defaultContentType: "text/html"
+    defaultSubject: "DEFAULT EMAIL SUBJECT"
+    defaultBody: "DEFAULT BODY"
+    emergencyReroute: "emergency-reroute"
+    maxAttachmentSizeMb: 42
+    mailAccount:
+      smtpHost: "smtp-host-xyz"
+      smtpPort: "9876"
+      credentialsId: "smtp-credentials-xyz"
+      advProperties: "adv-properties-xyz"
+      useSsl: true
+      useTls: true
+    defaultRecipients: "first-account@domain.extension"
+    allowedDomains: "@domain.extension"
+    excludedCommitters: "not-this-committer"
+    listId: "list-id"
+    precedenceBulk: true
+    defaultReplyTo: "no-reply@domain.extension"
+    adminRequiredForTemplateTesting: true
+    watchingEnabled: true
+    allowUnregisteredEnabled: true
+    defaultPresendScript: "default-presend-script"
+    defaultPostsendScript: "defaultpostsend-script"
+    defaultClasspath: []
+    defaultTriggerIds: []
+    debugMode: true
+
+
+
+
+
 TASK 5
 
 kubectl create namespace dummy-flask-app
@@ -102,7 +148,7 @@ _________________________________________
 
 ssh -i ../../ssh_keys/appserver_rsschool_ssh_key_pair.pem -o ProxyCommand="ssh -i ../../ssh_keys/bastion_rsschool_ssh_key_pair.pem -W %h:%p ubuntu@54.91.195.38" ubuntu@10.1.230.231
 
-ssh tunnel for k3s api to use with kubectl on local mnachine:
+ssh tunnel for k3s api to use with kubectl on local machine:
 ssh -i bastion_rsschool_ssh_key_pair.pem -L 6443:k3s_master_ip:6443 ubuntu@bastion_ip -N &
 ssh -i bastion_rsschool_ssh_key_pair.pem -L 6443:10.1.240.251:6443 ubuntu@34.228.244.136 -N &
 Add kubeconfig to ~/.kube/config on the local machine and inside this config replace k3s_master_ip with 127.0.0.1

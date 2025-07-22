@@ -7,7 +7,7 @@ ARG WORK_DIR=/app
 
 WORKDIR "$WORK_DIR"
 
-COPY main.py wsgi.py requirements.txt ./
+COPY src/main.py src/wsgi.py src/requirements.txt ./
 
 RUN apk add --no-cache --virtual .build-deps gcc linux-headers musl-dev pcre-dev && \
   python3 -m venv "$VIRTUAL_ENV" && \

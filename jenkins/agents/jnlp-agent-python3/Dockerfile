@@ -1,3 +1,4 @@
+# latest is the only tag available
 FROM jenkins/jnlp-agent-python3:latest
 
 ARG OPENJDK_MAJOR_VERSION=21

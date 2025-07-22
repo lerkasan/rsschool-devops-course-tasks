@@ -26,6 +26,9 @@ controller:
     # -- The name of an existing secret containing the admin credentials
     existingSecret: ""
 
+  jenkinsUrl: http://jenkins.lerkasan.local:8080/
+  jenkinsAdminEmail: jenkins.notify.lerkasan@gmail.com
+
   jenkinsHome: "/var/jenkins_home"
 
   resources:
@@ -87,27 +90,6 @@ controller:
     defaultConfig: true
     configScripts:
       jcasc-configs: |
-        jobs:
-          - script: >
-              pipelineJob('dummy-flask-app') {
-                triggers {
-                  scm('H/5 * * * *')
-                }
-                definition {
-                  cpsScm {
-                    scm {
-                      git {
-                        remote {
-                          url('https://github.com/lerkasan/dummy-flask-app.git')
-                          credentials('github')
-                        }
-                        branch('*/main')
-                      }
-                    }
-                    lightweight()
-                  }
-                }
-              }
         credentials:
           system:
             domainCredentials:
@@ -131,6 +113,40 @@ controller:
                       id: "sonarqube"
                       scope: GLOBAL
                       secret: "${jcasc-secrets-sonarqube-token}"
+        unclassified:
+          email-ext:
+            charset: "UTF-8"
+            defaultContentType: "text/html"
+            maxAttachmentSizeMb: 15
+            mailAccount:
+              smtpHost: "smtp.gmail.com"
+              smtpPort: "587"
+              credentialsId: "smtp"
+              useSsl: true
+              useTls: true
+            defaultRecipients: "jenkins.notify.lerkasan@gmail.com"
+            defaultReplyTo: "jenkins.notify.lerkasan@gmail.com"
+        jobs:
+          - script: >
+              pipelineJob('dummy-flask-app') {
+                triggers {
+                  scm('H/5 * * * *')
+                }
+                definition {
+                  cpsScm {
+                    scm {
+                      git {
+                        remote {
+                          url('https://github.com/lerkasan/dummy-flask-app.git')
+                          credentials('github')
+                        }
+                        branch('*/main')
+                      }
+                    }
+                    lightweight()
+                  }
+                }
+              }                      
 
     security:
       apiToken:

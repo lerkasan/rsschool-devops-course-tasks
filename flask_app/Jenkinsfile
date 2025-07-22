@@ -161,13 +161,12 @@ pipeline {
     post {
         always {
             emailext(
-                subject: "${env.JOB_BASE_NAME} - Build # ${env.BUILD_NUMBER} - ${env.BUILD_STATUS}",     
+                subject: "${env.JOB_BASE_NAME} - Build #${env.BUILD_NUMBER} - ${currentBuild.currentResult}",     
                 to: "${NOTIFICATION_RECIPIENTS}",                                                                         
-                body: "Check console output at ${env.BUILD_URL} to view the results."                
+                body: "The build #${env.BUILD_NUMBER} for ${env.JOB_BASE_NAME} finished with status ${currentBuild.currentResult}. Check console output at ${env.BUILD_URL} to view the results."                
             )
 
             cleanWs()
         }
     }  
-
 }
