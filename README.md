@@ -81,6 +81,9 @@ Here is the example of JCasC value in `jenkins/manifests/jenkins-minikube-prep-f
               } 
 ```
 
+I use a local installation of the Minikube cluster without external access. Obviously, my local Jenkins installation doesn't have  a location URL, that can be accessed from outside by GitHub (push approach, configured on GitHub) to trigger a new build in Jenkins on each new commit to the GitHub repository. Consequently, I had to use pull approach configured in Jenkins - a scheduled polling of SCM every 5 minutes by Jenkins to check if there are any new commits and trigger a new build.
+
+
 The `Jenkinsfile` pipeline has following stages of building and deploying `dummy-flask-app` application:
 - Checkout
 - Test (includes steps for testing and scanning with sonar-scanner for SonarQube report)
@@ -91,7 +94,7 @@ The `Jenkinsfile` pipeline has following stages of building and deploying `dummy
 - Health Check
 - Additional Post stage, that automates sending email notifications about the status of the current build and cleaning the workspace after the build in finished.
 
-I use a local installation of the Minikube cluster without external access. Therefore, for the heath check purposes of the deployed application I selected a FQDN of the application service in the cluster. 
+As I mentioned before, I use a local installation of the Minikube cluster without external access. Therefore, for the heath check purposes of the deployed application I selected a FQDN of the application service in the cluster. 
 
 Example of FQDN of a service in a Kubernetes cluster:
 `<SERVICE_NAME>.<NAMESPACE_NAME>.svc.cluster.local`

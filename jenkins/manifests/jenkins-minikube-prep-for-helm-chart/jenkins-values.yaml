@@ -123,6 +123,7 @@ controller:
               smtpPort: "587"
               credentialsId: "smtp"
               useTls: true
+              useSsl: false              
             defaultRecipients: "jenkins.notify.lerkasan@gmail.com"
             defaultReplyTo: "jenkins.notify.lerkasan@gmail.com"
         jobs:
