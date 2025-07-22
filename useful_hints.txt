@@ -1,10 +1,51 @@
 TO READ:
 
 https://polarsquad.com/blog/check-your-helm-deployments
+https://medium.com/geekculture/jenkins-pipeline-python-and-docker-altogether-442d38119484
+https://rokpoto.com/jenkins-docker-in-docker-agent/
 https://chrisharwell94.medium.com/options-available-for-health-checks-with-helm-charts-b139f26f70aa
 https://www.sergiosanchez.com/posts/email-setup/
-https://medium.com/geekculture/jenkins-pipeline-python-and-docker-altogether-442d38119484
+https://buildkite.com/resources/blog/automating-jenkins-with-jcasc-configuration-as-code/
+https://medium.com/@aniecesedhai/generating-kubeconfig-automating-role-and-cluster-role-creation-rbac-with-helm-and-jenkins-bcd70b9934b9
 
+https://artifacthub.io/packages/helm/jenkinsci/jenkins
+https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/values.yaml
+
+https://github.com/jenkinsci/configuration-as-code-plugin/blob/master/README.md
+https://github.com/jenkinsci/configuration-as-code-plugin/blob/c3457b3933e66a27f913985bfa05da10f7f64b5f/docs/features/secrets.adoc#passing-secrets-through-variables
+
+https://www.reddit.com/r/kubernetes/comments/1kfdh5i/jenkins_agent_on_kubernetes/
+https://devopscube.com/jenkins-build-agents-kubernetes/
+https://plugins.jenkins.io/kubernetes/
+
+https://www.jenkins.io/doc/book/managing/nodes/
+https://www.jenkins.io/doc/book/using/using-agents/
+https://www.jenkins.io/doc/book/pipeline/jenkinsfile/
+https://www.jenkins.io/doc/book/pipeline/getting-started/#snippet-generator
+https://www.jenkins.io/doc/book/pipeline/pipeline-as-code/
+https://www.jenkins.io/doc/book/pipeline/syntax/
+https://www.jenkins.io/doc/pipeline/tour/tests-and-artifacts/
+
+https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test-coverage/
+https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/
+
+https://devopscube.com/setup-jenkins-email-notification/
+
+Sonar-runner installation
+https://gist.github.com/freb97/01867bb2003b57d8178d9b0c2e38125a
+
+Kaniko and docker-in-docker
+https://devops.stackexchange.com/questions/15418/running-builds-requiring-docker-daemon-in-jenkins-installed-using-helm-and-runni
+https://rokpoto.com/jenkins-docker-in-docker-agent/
+
+https://www.reddit.com/r/docker/comments/tb1ln9/programmatically_get_the_image_sha_of_an_image_i/
+https://www.reddit.com/r/kubernetes/comments/ca3cm3/how_to_get_kubeconfig_to_use_in_jenkins/
+
+https://phati-sawant.medium.com/connect-to-a-kubernetes-cluster-and-execute-kubectl-commands-in-jenkins-pipeline-a3f474c1302f
+
+https://github.com/mjah/kubernetes-jenkins-cicd-pipeline-example/blob/master/setup/get-kubeconfig.sh
+
+https://github.com/calvinliphc/terraform-jenkins/tree/main/EKS/manage
 
 TASK 6
 

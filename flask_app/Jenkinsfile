@@ -95,6 +95,7 @@ pipeline {
             }
             environment {
                 IMAGE_SHA = "${image_sha}"
+                HELM_PACKAGE_FILENAME = sh (script: 'echo "$(yq -r .name ./chart/Chart.yaml)-$(yq -r .version ./chart/Chart.yaml).tgz"', returnStdout: true).trim()
             }
             steps {
                 withCredentials([
@@ -107,11 +108,13 @@ pipeline {
                     sh '''
                     echo "${REGISTRY_PASSWORD}" | helm registry login registry-1.docker.io -u "${REGISTRY_USERNAME}" --password-stdin
                     helm package ./chart/
-                    helm push "$(yq -r .name ./chart/Chart.yaml)-$(yq -r .version ./chart/Chart.yaml).tgz" "oci://registry-1.docker.io/${REGISTRY_USERNAME}"
+                    helm push "${HELM_PACKAGE_FILENAME}" "oci://registry-1.docker.io/${REGISTRY_USERNAME}"
                     '''
-                }    
-            }
-        }   
+                }
+                    archiveArtifacts artifacts: "${HELM_PACKAGE_FILENAME}", fingerprint: true
+            }    
+        }
+
 
         stage('Deploy') {
             agent { 
