@@ -62,7 +62,7 @@ pipeline {
             steps {
                 // Adding sleep to ensure Docker Daemon is ready in dind container
                 sh 'sleep 10'
-                sh 'docker build -t "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" ./src'
+                sh 'docker build -t "${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG}" .'
             }
         }
 
