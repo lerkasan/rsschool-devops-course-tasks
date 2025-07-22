@@ -122,7 +122,6 @@ controller:
               smtpHost: "smtp.gmail.com"
               smtpPort: "587"
               credentialsId: "smtp"
-              useSsl: true
               useTls: true
             defaultRecipients: "jenkins.notify.lerkasan@gmail.com"
             defaultReplyTo: "jenkins.notify.lerkasan@gmail.com"
