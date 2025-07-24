@@ -1,0 +1,662 @@
+clusterDomain: cluster.local
+
+## @section Alertmanager Parameters
+alertmanager:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: bitnami/alertmanager
+    tag: 0.28.1-debian-12-r13
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []    
+
+  configuration: |
+    receivers:
+      - name: default-receiver
+    route:
+      group_wait: 10s
+      group_interval: 5m
+      receiver: default-receiver
+      repeat_interval: 3h
+
+  replicaCount: 1
+
+  containerPorts:
+    http: 9093
+    cluster: 9094
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 5
+    successThreshold: 1
+
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 2
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 10
+    successThreshold: 1
+
+  resourcesPreset: "nano"
+  ## @param alertmanager.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+  ## Example:
+  ## resources:
+  ##   requests:
+  ##     cpu: 2
+  ##     memory: 512Mi
+  ##   limits:
+  ##     cpu: 3
+  ##     memory: 1024Mi
+  ##
+  resources: {}
+
+  podSecurityContext:
+    enabled: true
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+
+  containerSecurityContext:
+    enabled: true
+    seLinuxOptions: {}
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+
+  automountServiceAccountToken: false
+
+  podAntiAffinityPreset: soft
+  
+  ## Pod Disruption Budget configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb
+  ## @param alertmanager.pdb.create Enable/disable a Pod Disruption Budget creation
+  ## @param alertmanager.pdb.minAvailable [object] Minimum number/percentage of pods that should remain scheduled
+  ## @param alertmanager.pdb.maxUnavailable [object] Maximum number/percentage of pods that may be made unavailable. Defaults to `1` if both `alertmanager.pdb.minAvailable` and `alertmanager.pdb.maxUnavailable` are empty.
+  ##
+  pdb:
+    create: true
+    minAvailable: ""
+    maxUnavailable: ""
+  
+  serviceAccount:
+    create: true
+    automountServiceAccountToken: false
+ 
+  service:
+    type: ClusterIP
+    ports:
+      http: 9093
+      cluster: 9094
+  
+  persistence:
+    ## @param alertmanager.persistence.enabled Enable Alertmanager data persistence using VolumeClaimTemplates
+    ##
+    enabled: true
+    ## @param alertmanager.persistence.mountPath Path to mount the volume at.
+    ##
+    mountPath: /bitnami/alertmanager/data
+    ## @param alertmanager.persistence.subPath The subdirectory of the volume to mount to, useful in dev environments and one PV for multiple services
+    ##
+    subPath: ""
+    ## @param alertmanager.persistence.storageClass PVC Storage Class for Concourse worker data volume
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    storageClass: ""
+    ## @param alertmanager.persistence.accessModes PVC Access Mode for Concourse worker volume
+    ##
+    accessModes:
+      - ReadWriteOnce
+    ## @param alertmanager.persistence.size PVC Storage Request for Concourse worker volume
+    ##
+    size: 8Gi
+    ## @param alertmanager.persistence.annotations Annotations for the PVC
+    ##
+    annotations: {}
+    ## @param alertmanager.persistence.selector Selector to match an existing Persistent Volume (this value is evaluated as a template)
+    ## selector:
+    ##   matchLabels:
+    ##     app: my-app
+    ##
+    selector: {}
+
+## @section Prometheus server Parameters
+server:
+  image:
+    registry: docker.io
+    repository: bitnami/prometheus
+    tag: 3.5.0-debian-12-r1
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  
+  ## @param server.scrapePrometheusHost Specifies whether to include prometheus host scraping job
+  ##
+  scrapePrometheusHost: true
+  ## @param server.scrapeAlertmanagerHost Specifies whether to include alertmanager host scraping job
+  ##
+  scrapeAlertmanagerHost: true
+
+
+  ## @param server.scrapeInterval Interval between consecutive scrapes. Example: "1m"
+  ##
+  scrapeInterval: "15s"
+  ## @param server.scrapeTimeout Interval between consecutive scrapes. Example: "10s"
+  ##
+  scrapeTimeout: "10s"
+  ## @param server.evaluationInterval Interval between consecutive evaluations. Example: "1m"
+  ##
+  evaluationInterval: "15s"
+
+
+  ## @param server.configuration [string] Promethus configuration. This content will be stored in the the prometheus.yaml file and the content can be a template.
+  ## ref: <https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml>
+  ##
+  configuration: |
+    global:
+      {{- if .Values.server.scrapeInterval }}
+      scrape_interval: {{ .Values.server.scrapeInterval }}
+      {{- end }}
+      {{- if .Values.server.scrapeTimeout }}
+      scrape_timeout: {{ .Values.server.scrapeTimeout }}
+      {{- end }}
+      {{- if .Values.server.evaluationInterval }}
+      evaluation_interval: {{ .Values.server.evaluationInterval }}
+      {{- end }}
+      external_labels:
+        monitor: {{ template "common.names.fullname" . }}
+        {{- if .Values.server.externalLabels }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.server.externalLabels "context" $) | nindent 4 }}
+        {{- end }}
+    {{- if .Values.server.remoteWrite }}
+    remote_write: {{- include "common.tplvalues.render" (dict "value" .Values.server.remoteWrite "context" $) | nindent 4 }}
+    {{- end }}
+    scrape_configs:
+    {{- if .Values.server.scrapePrometheusHost }}
+      - job_name: prometheus
+      {{- include "prometheus.scrape_config" (dict "component" "server" "context" $) | nindent 4 }}
+    {{- end }}
+    {{- if and .Values.alertmanager.enabled .Values.server.scrapeAlertmanagerHost }}
+      - job_name: alertmanager
+        {{- include "prometheus.scrape_config" (dict "component" "alertmanager" "context" $) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.server.extraScrapeConfigs}}
+    {{- include "common.tplvalues.render" (dict "value" .Values.server.extraScrapeConfigs "context" $) | nindent 2 }}
+    {{- end }}
+    {{- if or .Values.alertmanager.enabled .Values.server.alertingEndpoints}}
+    alerting:
+      alertmanagers:
+        {{- if .Values.server.alertingEndpoints }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.server.alertingEndpoints "context" $) | nindent 4 }}
+        {{- end }}
+        - scheme: HTTP
+          static_configs:
+            - targets: [ "{{ printf "%s.%s.svc.%s:%d" (include "prometheus.alertmanager.fullname" .) (include "common.names.namespace" .) .Values.clusterDomain (int .Values.alertmanager.service.ports.http) }}" ]
+    rule_files:
+      - rules.yaml
+    {{- end }}
+  ## @param server.alertingRules Prometheus alerting rules. This content will be stored in the the rules.yaml file and the content can be a template.
+  ## ref: <https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/>
+  ##
+  alertingRules: {}
+  ## @param server.extraScrapeConfigs Promethus configuration, useful to declare new scrape_configs. This content will be merged with the 'server.configuration' value and stored in the the prometheus.yaml file.
+  ## ref: <https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config>
+  ##
+
+  extraScrapeConfigs:
+    - job_name: node-exporter
+      static_configs:
+        - targets: ['node-exporter.monitoring.svc.cluster.local:9100']
+    - job_name: cadvisor
+      static_configs:
+        - targets: ['cadvisor.monitoring.svc.cluster.local:8080']
+    - job_name: "kube-state-metrics"
+      honor_timestamps: true
+      metrics_path: /metrics
+      scheme: http    
+      static_configs:
+        - targets: ["kube-state-metrics.kube-system.svc.cluster.local:8080"]
+      metric_relabel_configs:
+        - target_label: cluster
+          replacement: minikube
+    - job_name: kubernetes-nodes-cadvisor
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      kubernetes_sd_configs:
+        - role: node
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+      metric_relabel_configs:
+        - action: replace
+          source_labels: [id]
+          regex: '^/machine\.slice/machine-rkt\\x2d([^\\]+)\\.+/([^/]+)\.service$'
+          target_label: rkt_container_name
+          replacement: '${2}-${1}'
+        - action: replace
+          source_labels: [id]
+          regex: '^/system\.slice/(.+)\.service$'
+          target_label: systemd_service_name
+          replacement: '${1}'
+    - job_name: 'kubernetes-apiservers'
+      kubernetes_sd_configs:
+        - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+        - role: node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+    - job_name: 'kubernetes-service-endpoints'
+      kubernetes_sd_configs:
+        - role: endpoints
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+    - job_name: 'kubernetes-cadvisor'
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      kubernetes_sd_configs:
+        - role: node
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+                           
+  ## @param server.replicaCount Number of Prometheus replicas to deploy
+  ##
+  replicaCount: 1
+  ## @param server.containerPorts.http Prometheus HTTP container port
+  ##
+  containerPorts:
+    http: 9090
+
+  livenessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+
+  readinessProbe:
+    enabled: true
+    initialDelaySeconds: 5
+    periodSeconds: 10
+    timeoutSeconds: 2
+    failureThreshold: 5
+    successThreshold: 1
+
+  startupProbe:
+    enabled: false
+    initialDelaySeconds: 2
+    periodSeconds: 5
+    timeoutSeconds: 2
+    failureThreshold: 10
+    successThreshold: 1
+  
+  resourcesPreset: "medium"  # (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge)
+  ## @param server.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+  ## Example:
+  ## resources:
+  ##   requests:
+  ##     cpu: 2
+  ##     memory: 512Mi
+  ##   limits:
+  ##     cpu: 3
+  ##     memory: 1024Mi
+  ##
+  resources: {}
+
+  podSecurityContext:
+    enabled: true
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+
+  containerSecurityContext:
+    enabled: true
+    seLinuxOptions: {}
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+
+  automountServiceAccountToken: true
+  podAntiAffinityPreset: soft
+
+  ## Pod Disruption Budget configuration
+  ## ref: https://kubernetes.io/docs/tasks/run-application/configure-pdb
+  ## @param server.pdb.create Enable/disable a Pod Disruption Budget creation
+  ## @param server.pdb.minAvailable [object] Minimum number/percentage of pods that should remain scheduled
+  ## @param server.pdb.maxUnavailable [object] Maximum number/percentage of pods that may be made unavailable. Defaults to `1` if both `server.pdb.minAvailable` and `server.pdb.maxUnavailable` are empty.
+  ##
+  pdb:
+    create: true
+    minAvailable: ""
+    maxUnavailable: ""
+  
+  updateStrategy:
+    type: RollingUpdate
+  logLevel: info
+  logFormat: logfmt
+  retention: 10d
+  ## @param server.retentionSize Maximum size of metrics
+  ##
+  retentionSize: "0"
+    
+  ## ServiceAccount configuration
+  ##
+  serviceAccount:
+    ## @param server.serviceAccount.create Specifies whether a ServiceAccount should be created
+    ##
+    create: true
+    ## @param server.serviceAccount.name The name of the ServiceAccount to use.
+    ## If not set and create is true, a name is generated using the common.names.fullname template
+    ##
+    name: ""
+    ## @param server.serviceAccount.annotations Additional Service Account annotations (evaluated as a template)
+    ##
+    annotations: {}
+    ## @param server.serviceAccount.automountServiceAccountToken Automount service account token for the server service account
+    ##
+    automountServiceAccountToken: false
+  
+  ## Prometheus service parameters
+  ##
+  service:
+    ## @param server.service.type Prometheus service type
+    ##
+    type: ClusterIP
+    ## @param server.service.ports.http Prometheus service HTTP port
+    ##
+    ports:
+      http: 9090
+    ## Node ports to expose
+    ## @param server.service.nodePorts.http Node port for HTTP
+    ## NOTE: choose port between <30000-32767>
+    ##
+    nodePorts:
+      http: ""
+    ## @param server.service.clusterIP Prometheus service Cluster IP
+    ## e.g.:
+    ## clusterIP: None
+    ##
+    clusterIP: ""
+    ## @param server.service.loadBalancerIP Prometheus service Load Balancer IP
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+    ##
+    loadBalancerIP: ""
+    ## @param server.service.loadBalancerClass Prometheus service Load Balancer class if service type is `LoadBalancer` (optional, cloud specific)
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/#type-loadbalancer
+    ##
+    loadBalancerClass: ""
+    ## @param server.service.loadBalancerSourceRanges Prometheus service Load Balancer sources
+    ## ref: https://kubernetes.io/docs/tasks/access-application-cluster/configure-cloud-provider-firewall/#restrict-access-for-loadbalancer-service
+    ## e.g:
+    ## loadBalancerSourceRanges:
+    ##   - 10.10.10.0/24
+    ##
+    loadBalancerSourceRanges: []
+    ## @param server.service.externalTrafficPolicy Prometheus service external traffic policy
+    ## ref http://kubernetes.io/docs/tasks/access-application-cluster/create-external-load-balancer/#preserving-the-client-source-ip
+    ##
+    externalTrafficPolicy: Cluster
+    ## @param server.service.annotations Additional custom annotations for Prometheus service
+    ##
+    annotations: {}
+    ## @param server.service.extraPorts Extra ports to expose in Prometheus service (normally used with the `sidecars` value)
+    ##
+    extraPorts: []
+    ## @param server.service.sessionAffinity Control where client requests go, to the same pod or round-robin. ClientIP by default.
+    ## Values: ClientIP or None
+    ## ref: https://kubernetes.io/docs/concepts/services-networking/service/
+    ##
+    sessionAffinity: ClientIP
+    ## @param server.service.sessionAffinityConfig Additional settings for the sessionAffinity
+    ## sessionAffinityConfig:
+    ##   clientIP:
+    ##     timeoutSeconds: 300
+    ##
+    sessionAffinityConfig: {}
+  ## Persistence Parameters
+  ##
+
+  ## Enable persistence using Persistent Volume Claims
+  ## ref: https://kubernetes.io/docs/concepts/storage/persistent-volumes/
+  ##
+  persistence:
+    ## @param server.persistence.enabled Enable persistence using Persistent Volume Claims. If you have multiple instances (server.repicacount > 1), please considere using an external storage service like Thanos or Grafana Mimir
+    ##
+    enabled: true
+    ## @param server.persistence.mountPath Path to mount the volume at.
+    ##
+    mountPath: /bitnami/prometheus/data
+    ## @param server.persistence.subPath The subdirectory of the volume to mount to, useful in dev environments and one PV for multiple services
+    ##
+    subPath: ""
+    ## @param server.persistence.storageClass Storage class of backing PVC
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    ##
+    storageClass: ""
+    ## @param server.persistence.annotations Persistent Volume Claim annotations
+    ##
+    annotations: {}
+    ## @param server.persistence.accessModes Persistent Volume Access Modes
+    ##
+    accessModes:
+      - ReadWriteOnce
+    ## @param server.persistence.size Size of data volume
+    ##
+    size: 8Gi
+    ## @param server.persistence.existingClaim The name of an existing PVC to use for persistence
+    ##
+    existingClaim: ""
+    ## @param server.persistence.selector Selector to match an existing Persistent Volume for Prometheus data PVC
+    ## If set, the PVC can't have a PV dynamically provisioned for it
+    ## E.g.
+    ## selector:
+    ##   matchLabels:
+    ##     app: my-app
+    ##
+    selector: {}
+    ## @param server.persistence.dataSource Custom PVC data source
+    ##
+    dataSource: {}
+  
+  # RBAC configuration
+  ##
+  rbac:
+    ## @param server.rbac.create Specifies whether RBAC resources should be created
+    ##
+    create: true
+    ## @param server.rbac.includeDefaultRules Specifies whether to include default rules from official prometheus helm chart
+    ## ref: https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/templates/clusterrole.yaml
+    ##
+    includeDefaultRules: true
+    ## @param server.rbac.rules Custom RBAC rules to set
+    ## e.g:
+    ## rules:
+    ##   - apiGroups:
+    ##       - ""
+    ##     resources:
+    ##       - pods
+    ##     verbs:
+    ##       - get
+    ##       - list
+    ##
+    rules: []
+## @section Init Container Parameters
+##
+
+## 'volumePermissions' init container parameters
+## Changes the owner and group of the persistent volume mount point to runAsUser:fsGroup values
+##   based on the *podSecurityContext/*containerSecurityContext parameters
+##
+volumePermissions:
+  ## @param volumePermissions.enabled Enable init container that changes the owner/group of the PV mount point to `runAsUser:fsGroup`
+  ##
+  enabled: false
+  ## OS Shell + Utility image
+  ## ref: https://hub.docker.com/r/bitnami/os-shell/tags/
+  ## @param volumePermissions.image.registry [default: REGISTRY_NAME] OS Shell + Utility image registry
+  ## @param volumePermissions.image.repository [default: REPOSITORY_NAME/os-shell] OS Shell + Utility image repository
+  ## @skip volumePermissions.image.tag OS Shell + Utility image tag (immutable tags are recommended)
+  ## @param volumePermissions.image.pullPolicy OS Shell + Utility image pull policy
+  ## @param volumePermissions.image.pullSecrets OS Shell + Utility image pull secrets
+  ##
+  image:
+    registry: docker.io
+    repository: bitnami/os-shell
+    tag: 12-debian-12-r49
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ## e.g:
+    ## pullSecrets:
+    ##   - myRegistryKeySecretName
+    ##
+    pullSecrets: []
+  ## Init container's resource requests and limits
+  ## ref: http://kubernetes.io/docs/concepts/configuration/manage-compute-resources-container/
+  ## @param volumePermissions.resourcesPreset Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if volumePermissions.resources is set (volumePermissions.resources is recommended for production).
+  ## More information: https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15
+  ##
+  resourcesPreset: "nano"
+  ## @param volumePermissions.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+  ## Example:
+  ## resources:
+  ##   requests:
+  ##     cpu: 2
+  ##     memory: 512Mi
+  ##   limits:
+  ##     cpu: 3
+  ##     memory: 1024Mi
+  ##
+  resources: {}
+  ## Init container Container Security Context
+  ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container
+  ## @param volumePermissions.containerSecurityContext.seLinuxOptions [object,nullable] Set SELinux options in container
+  ## @param volumePermissions.containerSecurityContext.runAsUser Set init container's Security Context runAsUser
+  ## NOTE: when runAsUser is set to special value "auto", init container will try to chown the
+  ##   data folder to auto-determined user&group, using commands: `id -u`:`id -G | cut -d" " -f2`
+  ##   "auto" is especially useful for OpenShift which has scc with dynamic user ids (and 0 is not allowed)
+  ##
+  containerSecurityContext:
+    seLinuxOptions: {}
+    runAsUser: 0

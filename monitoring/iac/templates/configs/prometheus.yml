@@ -1,0 +1,18 @@
+# # https://blog.devops.dev/part-1-setup-prometheus-kube-state-metrics-and-integrate-grafana-with-kubernetes-6c21f60d167f
+
+# global:
+#   scrape_interval: 10s
+#   evaluation_interval: 10s
+
+#   scrape_configs:
+#     - job_name: "kube-state-metrics"
+#       static_configs:
+#         - targets: ["kube-state-metrics.kube-system.svc.cluster.local:8080"]
+
+#     - job_name: "kubernetes-api-servers"
+#       kubernetes_sd_configs:
+#         - role: endpoints
+#       relabel_configs:
+#         - source_labels: [__meta_kubernetes_endpoints_name]
+#           regex: 'node-exporter'
+#           action: keep        
