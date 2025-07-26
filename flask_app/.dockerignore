@@ -5,3 +5,7 @@ compose*.yml
 .gitignore
 .dockerignore
 README.md
+*README.md
+chart/
+tests/
+Jenkinsfile

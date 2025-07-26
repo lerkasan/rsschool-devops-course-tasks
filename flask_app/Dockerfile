@@ -7,11 +7,11 @@ ARG WORK_DIR=/app
 
 WORKDIR "$WORK_DIR"
 
-COPY main.py wsgi.py requirements.txt ./
+COPY src/main.py src/wsgi.py src/requirements.txt ./
 
 RUN apk add --no-cache --virtual .build-deps gcc linux-headers musl-dev pcre-dev && \
   python3 -m venv "$VIRTUAL_ENV" && \
-  pip3 install --upgrade pip && \
+  pip3 install --upgrade pip uwsgi && \
   pip3 install -r requirements.txt --no-cache-dir && \
   apk --purge del .build-deps && \
   rm -rf /var/cache/apk/*
@@ -56,7 +56,7 @@ USER "$APP_USER"
 EXPOSE ${PORT:-8080}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \
-  CMD curl -f http://localhost:${PORT} || exit 1
+  CMD curl --fail "http://localhost:${PORT}" || exit 1
 
 # For development only
 # CMD ["flask", "run"]

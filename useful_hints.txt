@@ -1,3 +1,167 @@
+TO READ:
+
+https://polarsquad.com/blog/check-your-helm-deployments
+https://medium.com/geekculture/jenkins-pipeline-python-and-docker-altogether-442d38119484
+https://rokpoto.com/jenkins-docker-in-docker-agent/
+https://chrisharwell94.medium.com/options-available-for-health-checks-with-helm-charts-b139f26f70aa
+https://www.sergiosanchez.com/posts/email-setup/
+https://buildkite.com/resources/blog/automating-jenkins-with-jcasc-configuration-as-code/
+https://medium.com/@aniecesedhai/generating-kubeconfig-automating-role-and-cluster-role-creation-rbac-with-helm-and-jenkins-bcd70b9934b9
+
+https://artifacthub.io/packages/helm/jenkinsci/jenkins
+https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/values.yaml
+
+https://github.com/jenkinsci/configuration-as-code-plugin/blob/master/README.md
+https://github.com/jenkinsci/configuration-as-code-plugin/blob/c3457b3933e66a27f913985bfa05da10f7f64b5f/docs/features/secrets.adoc#passing-secrets-through-variables
+
+https://www.reddit.com/r/kubernetes/comments/1kfdh5i/jenkins_agent_on_kubernetes/
+https://devopscube.com/jenkins-build-agents-kubernetes/
+https://plugins.jenkins.io/kubernetes/
+
+https://www.jenkins.io/doc/book/managing/nodes/
+https://www.jenkins.io/doc/book/using/using-agents/
+https://www.jenkins.io/doc/book/pipeline/jenkinsfile/
+https://www.jenkins.io/doc/book/pipeline/getting-started/#snippet-generator
+https://www.jenkins.io/doc/book/pipeline/pipeline-as-code/
+https://www.jenkins.io/doc/book/pipeline/syntax/
+https://www.jenkins.io/doc/pipeline/tour/tests-and-artifacts/
+
+https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test-coverage/
+https://docs.sonarsource.com/sonarqube-server/latest/analyzing-source-code/scanners/sonarscanner/
+
+https://devopscube.com/setup-jenkins-email-notification/
+
+Sonar-runner installation
+https://gist.github.com/freb97/01867bb2003b57d8178d9b0c2e38125a
+
+Kaniko and docker-in-docker
+https://devops.stackexchange.com/questions/15418/running-builds-requiring-docker-daemon-in-jenkins-installed-using-helm-and-runni
+https://rokpoto.com/jenkins-docker-in-docker-agent/
+
+https://www.reddit.com/r/docker/comments/tb1ln9/programmatically_get_the_image_sha_of_an_image_i/
+https://www.reddit.com/r/kubernetes/comments/ca3cm3/how_to_get_kubeconfig_to_use_in_jenkins/
+
+https://phati-sawant.medium.com/connect-to-a-kubernetes-cluster-and-execute-kubectl-commands-in-jenkins-pipeline-a3f474c1302f
+
+https://github.com/mjah/kubernetes-jenkins-cicd-pipeline-example/blob/master/setup/get-kubeconfig.sh
+
+https://github.com/calvinliphc/terraform-jenkins/tree/main/EKS/manage
+
+TASK 6
+
+minikube start --driver=virtualbox --cpus=8 --memory=8g
+
+https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test-coverage/
+
+docker build -t lerkasan/jnlp-agent-python3:jdk21 ./jenkins/agents/jnlp-agent-python3/
+docker push lerkasan/jnlp-agent-python3:jdk21
+
+kubectl create ns dummy-flask-app
+
+kubectl create secret generic dockerhub-credentials-secret \
+  --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+  --type=kubernetes.io/dockerconfigjson \
+  --namespace=dummy-flask-app
+
+kubectl create secret generic jcasc-secrets --from-env-file=.env -n jenkins
+
+kubectl create secret generic dockerhub-credentials-secret \
+    --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+    --type=kubernetes.io/dockerconfigjson \
+    --namespace=jenkins
+
+kubectl create namespace dummy-flask-app
+
+kubectl create secret generic dockerhub-credentials-secret \
+    --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
+    --type=kubernetes.io/dockerconfigjson \
+    --namespace=dummy-flask-app
+
+helm upgrade --install --create-namespace jenkins --namespace jenkins -f jenkins/manifests/jenkins-minikube-prep-for-helm-chart/jenkins-values.yaml jenkinsci/jenkins
+
+kubectl port-forward -n dummy-flask-app svc/dummy-flask-app-dummy-flask-app 8000:8080
+
+kubectl port-forward -n jenkins svc/jenkins 8080:8080
+
+helm get values --namespace dummy-flask-app dummy-flask-app
+
+!!! Don't forget to turn off Automatic Analysis in SonarQube project !!!
+https://docs.sonarsource.com/sonarqube-cloud/enriching/test-coverage/python-test-coverage/
+
+kubectl config view
+
+
+curl http://dummy-flask-app-dummy-flask-app.dummy-flask-app.svc.cluster.local:8080
+curl "${HELM_RELEASE_NAME}-$(yq -r .name ./chart/Chart.yaml).${APP_NAMESPACE}.svc.cluster.local:8080"
+
+kubectl exec --namespace jenkins -it svc/jenkins -c jenkins -- /bin/cat /run/secrets/additional/chart-admin-password && echo
+
+kubectl port-forward -n jenkins svc/jenkins 8080:8080
+
+kubectl describe $(kubectl get all -n jenkins | grep python | awk '{print $1}') -n jenkins
+kubectl logs $(kubectl get all -n jenkins | grep python | awk '{print $1}' | cut -d '/' -f 2) -n jenkins
+
+kubectl exec -it pod/dind-agent-qnt4n -c jnlp -n jenkins -- /bin/sh
+kubectl exec -it pod/dind-agent-qnt4n -c jnlp -n jenkins -- java -version
+
+kubectl exec -it $(kubectl get all -n jenkins | grep python | awk '{print $1}') -c jnlp -n jenkins -- java -version
+kubectl exec -it $(kubectl get all -n jenkins | grep python | awk '{print $1}') -n jenkins -- java -version
+
+kubectl exec -it pod/jenkins-0 -c jenkins -n jenkins -- /bin/sh
+
+docker run --rm --entrypoint="java -version" jenkins/jnlp-agent-python3
+docker run --rm -it --entrypoint="/bin/sh" jenkins/jnlp-agent-python3
+
+
+helm history dummy-flask-app -n dummy-flask-app
+helm status dummy-flask-app -n dummy-flask-app
+
+
+https://github.com/jenkinsci/email-ext-plugin/blob/main/src/test/resources/configuration-as-code.yml
+
+unclassified:
+  email-ext:
+    defaultSuffix: "@domain.extension"
+    addAccounts:
+      - address: "foo.bar"
+        smtpHost: "smtp-host"
+        smtpPort: "1234"
+        credentialsId: "credentials-id"
+        useSsl: true
+        useTls: true
+        advProperties: "avd-properties"
+    charset: "UTF-8"
+    defaultContentType: "text/html"
+    defaultSubject: "DEFAULT EMAIL SUBJECT"
+    defaultBody: "DEFAULT BODY"
+    emergencyReroute: "emergency-reroute"
+    maxAttachmentSizeMb: 42
+    mailAccount:
+      smtpHost: "smtp-host-xyz"
+      smtpPort: "9876"
+      credentialsId: "smtp-credentials-xyz"
+      advProperties: "adv-properties-xyz"
+      useSsl: true
+      useTls: true
+    defaultRecipients: "first-account@domain.extension"
+    allowedDomains: "@domain.extension"
+    excludedCommitters: "not-this-committer"
+    listId: "list-id"
+    precedenceBulk: true
+    defaultReplyTo: "no-reply@domain.extension"
+    adminRequiredForTemplateTesting: true
+    watchingEnabled: true
+    allowUnregisteredEnabled: true
+    defaultPresendScript: "default-presend-script"
+    defaultPostsendScript: "defaultpostsend-script"
+    defaultClasspath: []
+    defaultTriggerIds: []
+    debugMode: true
+
+
+
+
+
 TASK 5
 
 kubectl create namespace dummy-flask-app
@@ -6,6 +170,7 @@ kubectl create secret generic dockerhub-credentials-secret \
     --from-file=.dockerconfigjson=/home/lerkasan/.docker/config.json \
     --type=kubernetes.io/dockerconfigjson \
     --namespace=dummy-flask-app
+    
 
 helm lint ./flask_app/chart
 helm template ./flask_app/chart
@@ -24,7 +189,7 @@ _________________________________________
 
 ssh -i ../../ssh_keys/appserver_rsschool_ssh_key_pair.pem -o ProxyCommand="ssh -i ../../ssh_keys/bastion_rsschool_ssh_key_pair.pem -W %h:%p ubuntu@54.91.195.38" ubuntu@10.1.230.231
 
-ssh tunnel for k3s api to use with kubectl on local mnachine:
+ssh tunnel for k3s api to use with kubectl on local machine:
 ssh -i bastion_rsschool_ssh_key_pair.pem -L 6443:k3s_master_ip:6443 ubuntu@bastion_ip -N &
 ssh -i bastion_rsschool_ssh_key_pair.pem -L 6443:10.1.240.251:6443 ubuntu@34.228.244.136 -N &
 Add kubeconfig to ~/.kube/config on the local machine and inside this config replace k3s_master_ip with 127.0.0.1

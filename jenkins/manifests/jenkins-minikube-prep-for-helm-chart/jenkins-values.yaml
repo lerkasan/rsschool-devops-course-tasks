@@ -1,0 +1,240 @@
+controller:
+  componentName: "jenkins-controller"
+  image:
+    registry: "docker.io"
+    repository: "jenkins/jenkins"
+    tag: 2.504.3-lts-jdk21
+    pullPolicy: "Always"
+
+  admin:
+    # -- Admin username created as a secret if `controller.admin.createSecret` is true
+    username: "admin"
+    # -- Admin password created as a secret if `controller.admin.createSecret` is true
+    # @default -- <random password>
+    password:
+
+    # -- The key in the existing admin secret containing the username
+    userKey: jenkins-admin-user
+    # -- The key in the existing admin secret containing the password
+    passwordKey: jenkins-admin-password
+
+    # The default configuration uses this secret to configure an admin user
+    # If you don't need that user or use a different security realm, then you can disable it
+    # -- Create secret for admin user
+    createSecret: true
+
+    # -- The name of an existing secret containing the admin credentials
+    existingSecret: ""
+
+  jenkinsUrl: http://jenkins.lerkasan.local:8080/
+  jenkinsAdminEmail: jenkins.notify.lerkasan@gmail.com
+
+  jenkinsHome: "/var/jenkins_home"
+
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "256Mi"
+    limits:
+      cpu: "2000m"
+      memory: "4096Mi"
+
+  containerSecurityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+
+  serviceEnabled: true
+  serviceType: NodePort
+  nodePort: 32000
+  
+  healthProbes: false
+
+  installPlugins:
+    - kubernetes:4358.vcfd9c5a_0a_f51
+    - workflow-aggregator:608.v67378e9d3db_1
+    - git:5.7.0
+    - configuration-as-code:1971.vf9280461ea_89
+    - job-dsl:1.93
+    - junit:1335.v6b_a_a_e18534e1
+    - coverage:2.7.1
+    - pipeline-graph-view:600.vc287d1a_d4b_47
+    - pipeline-stage-view:2.38
+    - credentials:1415.v831096eb_5534
+    - credentials-binding:696.v256688029804
+    - plain-credentials:199.v9f8e1f741799
+    - email-ext:1916.vc954a_f86ff21
+    - ws-cleanup:0.48
+
+  installLatestPlugins: true
+
+  # ref: https://github.com/jenkinsci/configuration-as-code-plugin/blob/master/docs/features/secrets.adoc#kubernetes-secrets
+  additionalExistingSecrets:
+    - name: jcasc-secrets
+      keyName: github-username
+    - name: jcasc-secrets
+      keyName: github-token
+    - name: jcasc-secrets
+      keyName: dockerhub-username
+    - name: jcasc-secrets
+      keyName: dockerhub-token
+    - name: jcasc-secrets
+      keyName: sonarqube-token
+    - name: jcasc-secrets
+      keyName: smtp-username
+    - name: jcasc-secrets
+      keyName: smtp-password
+
+  JCasC:
+    defaultConfig: true
+    configScripts:
+      jcasc-configs: |
+        credentials:
+          system:
+            domainCredentials:
+              - credentials:
+                  - usernamePassword:
+                      id: "github"
+                      scope: GLOBAL
+                      username: "${jcasc-secrets-github-username}"
+                      password: "${jcasc-secrets-github-token}"
+                  - usernamePassword:
+                      id: "dockerhub"
+                      scope: GLOBAL
+                      username: "${jcasc-secrets-dockerhub-username}"
+                      password: "${jcasc-secrets-dockerhub-token}"
+                  - usernamePassword:
+                      id: "smtp"
+                      scope: GLOBAL
+                      username: "${jcasc-secrets-smtp-username}"
+                      password: "${jcasc-secrets-smtp-password}"
+                  - string:
+                      id: "sonarqube"
+                      scope: GLOBAL
+                      secret: "${jcasc-secrets-sonarqube-token}"
+        unclassified:
+          email-ext:
+            charset: "UTF-8"
+            defaultContentType: "text/html"
+            maxAttachmentSizeMb: 15
+            mailAccount:
+              smtpHost: "smtp.gmail.com"
+              smtpPort: "587"
+              credentialsId: "smtp"
+              useTls: true
+              useSsl: false              
+            defaultRecipients: "jenkins.notify.lerkasan@gmail.com"
+            defaultReplyTo: "jenkins.notify.lerkasan@gmail.com"
+        jobs:
+          - script: >
+              pipelineJob('dummy-flask-app') {
+                triggers {
+                  scm('H/5 * * * *')
+                }
+                definition {
+                  cpsScm {
+                    scm {
+                      git {
+                        remote {
+                          url('https://github.com/lerkasan/dummy-flask-app.git')
+                          credentials('github')
+                        }
+                        branch('*/main')
+                      }
+                    }
+                    lightweight()
+                  }
+                }
+              }                      
+
+    security:
+      apiToken:
+        creationOfLegacyTokenEnabled: false
+        tokenGenerationOnCreationEnabled: false
+        usageStatisticsEnabled: true
+
+    securityRealm: |-
+      local:
+        allowsSignup: false
+        enableCaptcha: false
+        users:
+        - id: "${chart-admin-username}"
+          name: "Jenkins Admin"
+          password: "${chart-admin-password}"
+
+    # Ignored if authorizationStrategy is defined in controller.JCasC.configScripts
+    # -- Jenkins Config as Code Authorization Strategy-section
+    authorizationStrategy: |-
+      loggedInUsersCanDoAnything:
+        allowAnonymousRead: false
+
+agent:
+  enabled: true
+  image:
+    registry: "docker.io"
+    repository: "jenkins/inbound-agent"
+    tag: "3309.v27b_9314fd1a_4-7-jdk21"
+  workingDir: "/home/jenkins/agent"
+  resources:
+    requests:
+      cpu: "512m"
+      memory: "512Mi"
+    limits:
+      cpu: "512m"
+      memory: "512Mi"
+
+additionalAgents:
+  dind:
+    podName: dind-agent
+    customJenkinsLabels: dind
+   # An example of overriding the jnlp container
+   # sideContainerName: jnlp
+    image:
+      repository: jenkins/jnlp-agent-docker # based on alpine + busybox, has java openjdk-17 as default
+      tag: latest
+    alwaysPullImage: true
+    envVars:
+      - name: DOCKER_HOST
+        value: "tcp://localhost:2375"
+    yamlTemplate:  |-  
+     spec: 
+         containers:
+           - name: dind-daemon 
+             image: docker:28.3.2-dind-alpine3.22
+             securityContext: 
+               privileged: true
+             env: 
+               - name: DOCKER_TLS_CERTDIR
+                 value: ""    
+  python:
+    podName: python-agent
+    customJenkinsLabels: python
+    # sideContainerName: python
+    image:
+      # repository: jenkins/jnlp-agent-python3 # based on alpine + busybox, has java openjdk-11 as default
+      repository: lerkasan/jnlp-agent-python3
+      tag: "jdk21"
+    alwaysPullImage: true
+    resources:
+      requests:
+        cpu: "1024m"
+        memory: "1024Mi"
+      limits:
+        cpu: "2048m"
+        memory: "4096Mi"
+
+persistence:
+  enabled: true
+  existingClaim: jenkins-pv-claim
+  storageClass: local-storage
+  accessMode: "ReadWriteOnce"
+  size: "10Gi"
+
+rbac:
+  create: true
+  readSecrets: false
+
+serviceAccount:
+  create: false
+  name: jenkins
