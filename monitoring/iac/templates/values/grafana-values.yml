@@ -12,48 +12,46 @@ image:
 admin:
   ## @param admin.user Grafana admin username
   ##
-  user: "admin"
+  user: admin
   ## @param admin.password Admin password. If a password is not provided a random password will be generated
   ##
   ## password: ""
   ## @param admin.existingSecret Name of the existing secret containing admin password
   ##
-  existingSecret: "grafana-admin-password"
-  ## @param admin.existingSecretPasswordKey Password key on the existing secret
-  ##
-  ## existingSecretPasswordKey: password
+  existingSecret: grafana-admin-password
+  existingSecretPasswordKey: GF_SECURITY_ADMIN_PASSWORD
 ## SMTP configuration
 ##
 smtp:
   ## @param smtp.enabled Enable SMTP configuration
   ##
-  enabled: false
+  enabled: true
   ## @param smtp.user SMTP user
   ##
-  user: user
+  # user: user
   ## @param smtp.password SMTP password
   ##
-  password: password
+  # password: password
   ## @param smtp.host Custom host for the smtp server
   ## e.g:
   ##   host: mysmtphost.com
   ##
-  host: ""
+  host: "smtp.gmail.com:587"
   ## @param smtp.fromAddress From address
   ##
-  fromAddress: ""
+  fromAddress: "jenkins.notify.lerkasan@gmail.com"
   ## @param smtp.fromName From name
   ##
-  fromName: ""
+  fromName: "Grafana Notifications"
   ## @param smtp.skipVerify Enable skip verify
   ##
   skipVerify: "false"
   ## @param smtp.existingSecret Name of existing secret containing SMTP credentials (user and password)
   ##
-  existingSecret: ""
+  existingSecret: smtp-auth
   ## @param smtp.existingSecretUserKey User key on the existing secret
   ##
-  existingSecretUserKey: user
+  existingSecretUserKey: username
   ## @param smtp.existingSecretPasswordKey Password key on the existing secret
   ##
   existingSecretPasswordKey: password
@@ -93,6 +91,10 @@ dashboardsConfigMaps:
     fileName: 315-rev3.json
   - configMapName: grafana-dashboard-13332-rev12
     fileName: 13332-rev12.json
+  - configMapName: grafana-dashboard-5984-rev4
+    fileName: 5984-rev4.json
+  - configMapName: grafana-dashboard-9578-rev4
+    fileName: 9578-rev4.json
 
 ## Import datasources from an externally-managed secret, or a secret definition set via Helm values.
 ##
@@ -121,8 +123,10 @@ notifiers:
 ## Create alerting rules, contact points, notification policies, templates, and mute timings from a configMap
 ## @param alerting.configMapName Name of a ConfigMap containing Grafana alerting configuration
 ##
+
 alerting:
-  configMapName: ""
+  configMapName: "grafana-alerting"
+
 ## @section Grafana Deployment parameters
 grafana:
   ## @param grafana.replicaCount Number of Grafana nodes

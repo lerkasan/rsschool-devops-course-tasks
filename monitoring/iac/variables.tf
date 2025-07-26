@@ -39,3 +39,15 @@ variable "grafana_chart_version" {
   type        = string
   default     = "12.1.1"
 }
+
+variable "smtp_auth_username" {
+  description = "SMTP authentication username for sending alerts"
+  type        = string
+  sensitive   = true
+}
+
+variable "smtp_auth_password" {
+  description = "SMTP authentication password for sending alerts"
+  type        = string
+  sensitive   = true
+}

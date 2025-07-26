@@ -9,16 +9,46 @@ alertmanager:
     tag: 0.28.1-debian-12-r13
     digest: ""
     pullPolicy: IfNotPresent
-    pullSecrets: []    
+    pullSecrets: []
 
+  extraVolumes:
+    - name: smtp-auth-password-volume
+      secret:
+        secretName: smtp-auth
+        items:
+          - key: password
+            path: smtp-auth-password
+
+  extraVolumeMounts:
+    - name: smtp-auth-password-volume
+      readOnly: true
+      mountPath: /run/secrets/smtp-auth-password
+
+  # here I need to user {{ "{{" }} and {{ "}}" }} instead of {{ and }} to avoid rendering issues of the helm template containing alerting templates
   configuration: |
+    global:
+      smtp_from: jenkins.notify.lerkasan@gmail.com
+      smtp_smarthost: smtp.gmail.com:587
+      smtp_auth_username: jenkins.notify.lerkasan@gmail.com
+      smtp_auth_password_file: /run/secrets/smtp-auth-password
+      smtp_require_tls: true
     receivers:
-      - name: default-receiver
+      - name: devops
+        email_configs:
+          - to: jenkins.notify.lerkasan@gmail.com      
     route:
       group_wait: 10s
       group_interval: 5m
-      receiver: default-receiver
-      repeat_interval: 3h
+      receiver: devops
+      repeat_interval: 1h
+      group_by: [alertname]
+      routes:
+        - receiver: devops
+          group_by: [alertname]
+          matchers:
+            - team="devops"
+
+      
 
   replicaCount: 1
 
@@ -222,7 +252,51 @@ server:
   ## @param server.alertingRules Prometheus alerting rules. This content will be stored in the the rules.yaml file and the content can be a template.
   ## ref: <https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/>
   ##
-  alertingRules: {}
+
+  # here I need to user {{ "{{" }} and {{ "}}" }} instead of {{ and }} to avoid rendering issues of the helm template containing alerting templates.
+  # Otherwise I would get an error: prometheus/charts/common/templates/_tplvalues.tpl:19:8: executing "common.tplvalues.render" at <tpl $value .context>: error calling tpl: cannot parse template
+  alertingRules:
+    groups:
+      - name: node-memory-usage
+        labels:
+          team: devops
+        rules:
+          - alert: Out Of Memory
+            expr: (100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 10)
+            for: 2m
+            keep_firing_for: 5m
+            labels:
+              severity: high
+            annotations:
+              summary: 'Node {{ "{{" }} $labels.instance {{ "}}" }} is running out of memory.'
+              description: 'Memory is critically low (< 10% left) on {{ "{{" }} $labels.instance {{ "}}" }}. Free memory left: {{ "{{" }} printf "%.2f" $value {{ "}}" }}%.'
+          - alert: High Memory Usage
+            annotations:
+              description: |
+                'Node {{ "{{" }} $labels.instance {{ "}}" }} is experiencing high memory usage above 80% for the last 5 minutes. Currently memory usage is at {{ "{{" }} printf "%.2f" $value {{ "}}" }}%.'
+              summary: 'Node {{ "{{" }} $labels.instance {{ "}}" }} has high memory usage.'
+            expr: |
+              100 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100) > 80
+            for: 5m
+            keep_firing_for: 5m
+            labels:
+              severity: high            
+      - name: node-cpu-usage
+        labels:
+          team: devops
+        rules:
+          - alert: High CPU Usage 
+            annotations:
+              description: |
+                'CPU usage at {{ "{{" }} $labels.instance {{ "}}" }} has been above 80% for the last 5 minutes, is currently at {{ "{{" }} printf "%.2f" $value {{ "}}" }}%.'
+              summary: 'High CPU usage at {{ "{{" }} $labels.instance {{ "}}" }}.'
+            expr: |
+              sum without(mode) (avg without (cpu) (rate(node_cpu_seconds_total{mode!~"idle|iowait"}[2m]))) * 100 > 80
+            for: 5m
+            keep_firing_for: 5m
+            labels:
+              severity: high
+
   ## @param server.extraScrapeConfigs Promethus configuration, useful to declare new scrape_configs. This content will be merged with the 'server.configuration' value and stored in the the prometheus.yaml file.
   ## ref: <https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config>
   ##

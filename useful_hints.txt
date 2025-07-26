@@ -6,6 +6,23 @@ https://spacelift.io/blog/kube-state-metrics
 https://blog.devops.dev/part-1-setup-prometheus-kube-state-metrics-and-integrate-grafana-with-kubernetes-6c21f60d167f
 https://blog.devops.dev/part-2-setup-prometheus-kube-state-metrics-and-integrate-grafana-with-kubernetes-4a91bf5bee29
 
+https://victoriametrics.com/blog/alerting-recording-rules-alertmanager/
+
+https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+https://prometheus.io/docs/alerting/latest/overview/
+https://prometheus.io/docs/alerting/latest/configuration/
+https://github.com/prometheus/alertmanager/blob/main/doc/examples/simple.yml
+https://prometheus.io/docs/prometheus/latest/configuration/configuration/#alertmanager_config
+https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+https://prometheus.io/docs/alerting/latest/alertmanager/
+
+https://www.opsramp.com/guides/prometheus-monitoring/prometheus-alerting/
+https://monitoring.mixins.dev/prometheus/
+https://monitoring.mixins.dev/alertmanager/
+https://monitoring.mixins.dev/node-exporter/
+https://monitoring.mixins.dev/kube-state-metrics/
+https://monitoring.mixins.dev/kubernetes/
+https://samber.github.io/awesome-prometheus-alerts/rules#prometheus-self-monitoring
 
 
 # minikube addons enable ingress
@@ -15,9 +32,12 @@ minikube addons enable metrics-server
 minikube addons enable metrics-server
 
 minikube ssh
-sudo mkdir -p /bitnami/alertmanager/data
-sudo mkdir -p /bitnami/prometheus/data
-sudo chown -R 1001:1001 /bitnami
+#sudo mkdir -p /bitnami/alertmanager/data
+#sudo mkdir -p /bitnami/prometheus/data
+#sudo mkdir -p /bitnami/grafana/
+
+#sudo mkdir -p /bitnami
+#sudo chown -R 1001:1001 /bitnami
 
 # kubectl create ns monitoring
 
@@ -36,6 +56,8 @@ kubectl port-forward -n monitoring svc/grafana 3000:3000
 
 echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.password}" | base64 -d)"
 
+echo "Password: $(kubectl get secret grafana-admin --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
+echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
 
 Example PromQL Expressions
 The following PromQL expressions are example metrics and their meanings:

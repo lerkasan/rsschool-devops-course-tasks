@@ -4,6 +4,25 @@ resource "kubernetes_namespace" "monitoring" {
   }
 }
 
+resource "kubernetes_secret" "smtp_auth" {
+  type = "kubernetes.io/basic-auth"
+  immutable = true
+
+  metadata {
+    name      = "smtp-auth"
+    namespace = "monitoring"
+    labels = {
+      "sensitive" = "true"
+    }
+  }
+ 
+  data = {
+    "username" = var.smtp_auth_username
+    "password" = var.smtp_auth_password
+  }
+
+  depends_on = [kubernetes_namespace.monitoring]
+}
 
 resource "helm_release" "prometheus" {
   name       = "prometheus"
@@ -12,15 +31,15 @@ resource "helm_release" "prometheus" {
   version    = var.prometheus_chart_version
 
   namespace = "monitoring"
-  # create_namespace = true
-
-  # timeout = 600
 
   values = [
     file("${path.root}/templates/values/prometheus-values.yml")
   ]
 
-  depends_on = [kubernetes_namespace.monitoring]
+  depends_on = [
+    kubernetes_namespace.monitoring,
+    kubernetes_secret.smtp_auth
+  ]
 }
 
 resource "helm_release" "kube-state-metrics" {
@@ -43,7 +62,6 @@ resource "helm_release" "node-exporter" {
   version    = var.node_exporter_chart_version
 
   namespace = "monitoring"
-  # create_namespace = true
 
   values = [
     file("${path.root}/templates/values/node-exporter-values.yml")
@@ -59,7 +77,6 @@ resource "helm_release" "cadvisor" {
   version    = var.cadvisor_chart_version
 
   namespace = "monitoring"
-  # create_namespace = true
 
   values = [
     file("${path.root}/templates/values/cadvisor-values.yml")
