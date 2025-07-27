@@ -32,24 +32,6 @@ dashboardsProvider:
 dashboardsConfigMaps:
   - configMapName: grafana-dashboard-1860-rev41
     fileName: 1860-rev41.json
-  - configMapName: grafana-dashboard-13946-rev5
-    fileName: 13946-rev5.json
-  - configMapName: grafana-dashboard-14282-rev1
-    fileName: 14282-rev1.json
-  - configMapName: grafana-dashboard-15398-rev6
-    fileName: 15398-rev6.json
-  - configMapName: grafana-dashboard-18603-rev1
-    fileName: 18603-rev1.json
-  - configMapName: grafana-dashboard-21548-rev3
-    fileName: 21548-rev3.json
-  - configMapName: grafana-dashboard-15661-rev2
-    fileName: 15661-rev2.json
-  - configMapName: grafana-dashboard-315-rev3
-    fileName: 315-rev3.json
-  - configMapName: grafana-dashboard-13332-rev12
-    fileName: 13332-rev12.json
-  - configMapName: grafana-dashboard-5984-rev4
-    fileName: 5984-rev4.json
   - configMapName: grafana-dashboard-9578-rev4
     fileName: 9578-rev4.json
 
