@@ -23,6 +23,26 @@ resource "kubernetes_secret" "grafana_admin_password" {
   depends_on = [kubernetes_namespace.monitoring]
 }
 
+resource "kubernetes_secret" "smtp_auth" {
+  type = "Opaque"
+  immutable = true
+
+  metadata {
+    name      = "smtp-auth"
+    namespace = "monitoring"
+    labels = {
+      "sensitive" = "true"
+    }
+  }
+ 
+  data = {
+    "GF_SMTP_USER" = var.smtp_auth_username
+    "GF_SMTP_PASSWORD" = var.smtp_auth_password
+  }
+
+  depends_on = [kubernetes_namespace.monitoring]
+}
+
 resource "kubernetes_secret" "grafana_datasources" {
   type      = "Opaque"
   immutable = true
@@ -103,4 +123,12 @@ resource "helm_release" "grafana" {
     kubernetes_config_map.grafana_alerting,
     kubernetes_secret.smtp_auth
   ]
+}
+
+resource "kubernetes_manifest" "smtp4dev_deployment" {
+  manifest = yamldecode(file("${path.root}/templates/smtp4dev/smtp4dev-deployment.yml"))
+}
+
+resource "kubernetes_manifest" "smtp4dev_service" {
+  manifest = yamldecode(file("${path.root}/templates/smtp4dev/smtp4dev-service.yml"))
 }

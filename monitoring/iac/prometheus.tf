@@ -4,26 +4,6 @@ resource "kubernetes_namespace" "monitoring" {
   }
 }
 
-resource "kubernetes_secret" "smtp_auth" {
-  type = "kubernetes.io/basic-auth"
-  immutable = true
-
-  metadata {
-    name      = "smtp-auth"
-    namespace = "monitoring"
-    labels = {
-      "sensitive" = "true"
-    }
-  }
- 
-  data = {
-    "username" = var.smtp_auth_username
-    "password" = var.smtp_auth_password
-  }
-
-  depends_on = [kubernetes_namespace.monitoring]
-}
-
 resource "helm_release" "prometheus" {
   name       = "prometheus"
   repository = "https://charts.bitnami.com/bitnami" # oci://registry-1.docker.io/bitnamicharts

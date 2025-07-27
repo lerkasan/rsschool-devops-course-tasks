@@ -25,9 +25,14 @@ https://monitoring.mixins.dev/kubernetes/
 https://samber.github.io/awesome-prometheus-alerts/rules#prometheus-self-monitoring
 
 
+minikube start --driver=virtualbox --cpus=8 --memory=8g
+minikube addons enable default-storageclass
+minikube addons enable storage-provisioner
+minikube addons enable metrics-server
+
+
 # minikube addons enable ingress
 # minikube addons enable registry
-minikube addons enable metrics-server
 
 minikube addons enable metrics-server
 
@@ -54,7 +59,7 @@ terraform apply
 kubectl port-forward -n monitoring svc/prometheus-server 9090:9090
 kubectl port-forward -n monitoring svc/grafana 3000:3000
 
-echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.password}" | base64 -d)"
+echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
 
 echo "Password: $(kubectl get secret grafana-admin --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
 echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
