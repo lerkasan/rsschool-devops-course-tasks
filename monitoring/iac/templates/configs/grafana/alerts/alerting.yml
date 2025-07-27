@@ -38,17 +38,17 @@
               - severity = critical
             group_wait: 5s
             group_interval: 2m
-            repeat_interval: 30m            
-    
+            repeat_interval: 30m
+
     groups:
       - orgId: 1
-        name: NodeAlerts
+        name: testgroup
         folder: Infrastructure
         interval: 1m
         rules:
           - uid: node-out-of-memory
-            title: Out Of Memory
-            condition: A
+            title: node-out-of-memory
+            condition: C
             data:
               - refId: A
                 relativeTimeRange:
@@ -56,24 +56,55 @@
                   to: 0
                 datasourceUid: prometheus
                 model:
-                  expr: (100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 10)
-                  interval: 2m
-                  legendFormat: "{{instance}}"
+                  editorMode: code
+                  expr: 100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes
+                  instant: true
+                  intervalMs: 1000
+                  legendFormat: __auto
+                  maxDataPoints: 43200
+                  range: false
                   refId: A
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  conditions:
+                      - evaluator:
+                          params:
+                              - 10
+                          type: lt
+                        operator:
+                          type: and
+                        query:
+                          params:
+                              - C
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                  datasource:
+                      type: __expr__
+                      uid: __expr__
+                  expression: A
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: C
+                  type: threshold
             noDataState: NoData
-            execErrState: Alerting
-            for: 5m
+            execErrState: Error
+            for: 3m
+            keepFiringFor: 3m
             annotations:
-              summary: 'Node {{ $labels.instance }} is running out of memory.'
-              description: 'Memory is critically low (< 10% left) on {{ $labels.instance }}. Free memory left: {{ printf "%.2f" $value }}%.'
+              description: Memory is critically low (< 10% free) on {{ .Labels.instance }}.
+              summary: Node {{ .Labels.instance }} is running out of memory.
             labels:
               severity: high
               team: devops
-            contactPoint: devops
-
+            isPaused: false
+            notification_settings:
+              receiver: devops
           - uid: high-memory-usage
-            title: High Memory Usage
-            condition: A
+            title: high-memory-usage
+            condition: C
             data:
               - refId: A
                 relativeTimeRange:
@@ -81,24 +112,55 @@
                   to: 0
                 datasourceUid: prometheus
                 model:
-                  expr: 100 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100) > 80
-                  interval: 2m
-                  legendFormat: "{{instance}}"
+                  editorMode: code
+                  expr: 100 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100)
+                  instant: true
+                  intervalMs: 1000
+                  legendFormat: __auto
+                  maxDataPoints: 43200
+                  range: false
                   refId: A
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  conditions:
+                      - evaluator:
+                          params:
+                              - 80
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params:
+                              - C
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                  datasource:
+                      type: __expr__
+                      uid: __expr__
+                  expression: A
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: C
+                  type: threshold
             noDataState: NoData
-            execErrState: Alerting
-            for: 5m
+            execErrState: Error
+            for: 3m
+            keepFiringFor: 3m
             annotations:
-              summary: 'Node {{ $labels.instance }} has high memory usage.'
-              description: 'Node {{ $labels.instance }} is experiencing high memory usage above 80% for the last 5 minutes. Currently memory usage is at {{ printf "%.2f" $value }}%.'
+              description: Node {{ .Labels.instance }} is experiencing high memory usage above 80% for the last 5 minutes.
+              summary: Node {{ .Labels.instance }} has high memory usage.
             labels:
               severity: high
               team: devops
-            contactPoint: devops              
-
+            isPaused: false
+            notification_settings:
+              receiver: devops
           - uid: high-cpu-usage
-            title: High CPU Usage
-            condition: A
+            title: high-cpu-usage
+            condition: C
             data:
               - refId: A
                 relativeTimeRange:
@@ -106,17 +168,49 @@
                   to: 0
                 datasourceUid: prometheus
                 model:
-                  expr: sum without(mode) (avg without (cpu) (rate(node_cpu_seconds_total{mode!~"idle|iowait"}[2m]))) * 100 > 80
-                  interval: 2m
-                  legendFormat: "{{instance}}"
+                  editorMode: code
+                  expr: sum without(mode) (avg without (cpu) (rate(node_cpu_seconds_total{mode!~"idle|iowait"}[2m]))) * 100
+                  instant: true
+                  intervalMs: 1000
+                  legendFormat: __auto
+                  maxDataPoints: 43200
+                  range: false
                   refId: A
+              - refId: C
+                datasourceUid: __expr__
+                model:
+                  conditions:
+                      - evaluator:
+                          params:
+                              - 80
+                          type: gt
+                        operator:
+                          type: and
+                        query:
+                          params:
+                              - C
+                        reducer:
+                          params: []
+                          type: last
+                        type: query
+                  datasource:
+                      type: __expr__
+                      uid: __expr__
+                  expression: A
+                  intervalMs: 1000
+                  maxDataPoints: 43200
+                  refId: C
+                  type: threshold
             noDataState: NoData
-            execErrState: Alerting
-            for: 5m
+            execErrState: Error
+            for: 3m
+            keepFiringFor: 3m
             annotations:
-              summary: 'High CPU usage at {{ $labels.instance }} node.'
-              description: 'CPU usage at {{ $labels.instance }} has been above 80% for the last 5 minutes, is currently at {{ printf "%.2f" $value }}%.'
+              description: CPU usage at {{ .Labels.instance }} has been above 80% for the last 5 minutes.
+              summary: High CPU usage at {{ .Labels.instance }} node.
             labels:
               severity: high
               team: devops
-            contactPoint: devops              
+            isPaused: false
+            notification_settings:
+              receiver: devops
