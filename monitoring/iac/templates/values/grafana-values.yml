@@ -16,35 +16,13 @@ admin:
 smtp:
 
   enabled: true
-  ## @param smtp.user SMTP user
-  ##
-  # user: ""
-  ## @param smtp.password SMTP password
-  ##
-  # password: ""
-  ## @param smtp.host Custom host for the smtp server
-  ## e.g:
-  ##   host: mysmtphost.com
-  ##
   # host: smtp.gmail.com:587
   host: smtp4dev.monitoring.svc.cluster.local:25
-  ## @param smtp.fromAddress From address
-  ##
   fromAddress: jenkins.notify.lerkasan@gmail.com
-  ## @param smtp.fromName From name
-  ##
   fromName: "Grafana Notifications"
-  ## @param smtp.skipVerify Enable skip verify
-  ##
   skipVerify: true
-  ## @param smtp.existingSecret Name of existing secret containing SMTP credentials (user and password)
-  ##
   existingSecret: smtp-auth
-  # ## @param smtp.existingSecretUserKey User key on the existing secret
-  # ##
   existingSecretUserKey: GF_SMTP_USER
-  # ## @param smtp.existingSecretPasswordKey Password key on the existing secret
-  # ##
   existingSecretPasswordKey: GF_SMTP_PASSWORD
 
 dashboardsProvider:
@@ -116,85 +94,12 @@ ingress:
   enabled: false
  
 ## Prometheus metrics
-##
 metrics:
-  ## @param metrics.enabled Enable the export of Prometheus metrics
-  ##
+
   enabled: false
-  ## Prometheus Operator ServiceMonitor configuration
-  ## @param metrics.service.annotations [object] Annotations for Prometheus metrics service
-  ##
   service:
     annotations:
       prometheus.io/scrape: "true"
       prometheus.io/port: "3000"
       prometheus.io/path: "/metrics"
-  serviceMonitor:
-    ## @param metrics.serviceMonitor.enabled if `true`, creates a Prometheus Operator ServiceMonitor (also requires `metrics.enabled` to be `true`)
-    ##
-    enabled: false
-    ## @param metrics.serviceMonitor.namespace Namespace in which Prometheus is running
-    ##
-    namespace: ""
-    ## @param metrics.serviceMonitor.interval Interval at which metrics should be scraped.
-    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
-    ## e.g:
-    ## interval: 10s
-    ##
-    interval: ""
-    ## @param metrics.serviceMonitor.scrapeTimeout Timeout after which the scrape is ended
-    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#endpoint
-    ## e.g:
-    ## scrapeTimeout: 10s
-    ##
-    scrapeTimeout: ""
-    ## @param metrics.serviceMonitor.selector Prometheus instance selector labels
-    ## ref: https://github.com/bitnami/charts/tree/main/bitnami/prometheus-operator#prometheus-configuration
-    ## e.g:
-    ## selector:
-    ##   prometheus: my-prometheus
-    ##
-    selector: {}
-    ## @param metrics.serviceMonitor.relabelings RelabelConfigs to apply to samples before scraping
-    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
-    ##
-    relabelings: []
-    ## @param metrics.serviceMonitor.metricRelabelings MetricRelabelConfigs to apply to samples before ingestion
-    ## ref: https://github.com/coreos/prometheus-operator/blob/master/Documentation/api.md#relabelconfig
-    ##
-    metricRelabelings: []
-    ## @param metrics.serviceMonitor.honorLabels Labels to honor to add to the scrape endpoint
-    ##
-    honorLabels: false
-    ## DEPRECATED metrics.serviceMonitor.additionalLabels - It will be removed in a future release, please use metrics.serviceMonitor.labels instead
-    ## @param metrics.serviceMonitor.labels Additional custom labels for the ServiceMonitor
-    ##
-    labels: {}
-    ## @param metrics.serviceMonitor.jobLabel The name of the label on the target service to use as the job name in prometheus.
-    ##
-    jobLabel: ""
-  ## Prometheus Operator PrometheusRule configuration
-  ##
-  prometheusRule:
-    ## @param metrics.prometheusRule.enabled if `true`, creates a Prometheus Operator PrometheusRule (also requires `metrics.enabled` to be `true` and `metrics.prometheusRule.rules`)
-    ##
-    enabled: false
-    ## @param metrics.prometheusRule.namespace Namespace for the PrometheusRule Resource (defaults to the Release Namespace)
-    ##
-    namespace: ""
-    ## @param metrics.prometheusRule.additionalLabels Additional labels that can be used so PrometheusRule will be discovered by Prometheus
-    ##
-    additionalLabels: {}
-    ## @param metrics.prometheusRule.rules PrometheusRule rules to configure
-    ## e.g:
-    ##  - alert: Grafana-Down
-    ##    annotations:
-    ##      message: 'Grafana instance is down'
-    ##      summary: Grafana instance is down
-    ##    expr: absent(up{job="grafana"} == 1)
-    ##    labels:
-    ##      severity: warning
-    ##      service: grafana
-    ##    for: 5m
-    ##
-    rules: []
+

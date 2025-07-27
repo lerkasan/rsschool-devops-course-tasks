@@ -13,7 +13,3 @@ datasources:
     url: http://prometheus-alertmanager.monitoring.svc.cluster.local:9093
     access: proxy
     isDefault: false
-    # jsonData:
-    #   httpMethod: POST
-    #   tlsSkipVerify: true
-    #   timeInterval: "10s"

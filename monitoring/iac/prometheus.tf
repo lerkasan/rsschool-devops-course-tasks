@@ -50,18 +50,4 @@ resource "helm_release" "node-exporter" {
   depends_on = [kubernetes_namespace.monitoring]
 }
 
-resource "helm_release" "cadvisor" {
-  name       = "cadvisor"
-  repository = "https://charts.bitnami.com/bitnami" # oci://registry-1.docker.io/bitnamicharts
-  chart      = "cadvisor"
-  version    = var.cadvisor_chart_version
-
-  namespace = "monitoring"
-
-  values = [
-    file("${path.root}/templates/values/cadvisor-values.yml")
-  ]
-
-  depends_on = [kubernetes_namespace.monitoring]
-}
 
