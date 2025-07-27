@@ -38,6 +38,23 @@
     terraform apply
     ```
 
+6. Check workload in `monitoring` namespace of `minikube` cluster:
+
+    `kubectl get all -n monitoring`
+
+7. Get password for Grafana:
+    `echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"`  
+
+8. Configure port-forwarding to access Prometheus and Grafana:
+    ```
+    kubectl port-forward -n monitoring svc/prometheus-server 9090:9090
+    kubectl port-forward -n monitoring svc/grafana 3000:3000
+    ```
+
+9.  Grafana will be available in the browser on address `http://localhost:3000`
+
+    Prometheus will be available in the browser on address `http://localhost:9090`
+
 **Clean up**
 1. Uninstall Prometheus, Grafana and Alertmanager via terraform
 
