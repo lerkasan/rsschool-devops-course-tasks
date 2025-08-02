@@ -1,3 +1,76 @@
+## TASK 7
+
+### Prerequisites
+
+- Terraform
+- Kubectl
+- Helm v.3.x
+- Virtualbox
+- Minikube
+- Docker
+
+### Installation
+
+1. Create minikube cluster:
+
+    `minikube start --driver=virtualbox --cpus=8 --memory=8g`
+
+2. Enable storage class and provisioner
+
+    ```
+    minikube addons enable default-storageclass
+    minikube addons enable storage-provisioner
+    minikube addons enable metrics-server
+    ```
+
+3. Check the status of the minikube cluster and its nodes
+
+    `minikube status`
+
+    `kubectl get nodes`
+
+4. Move to the folder `monitoring/iac`
+    `cd monitoring/iac`
+
+5. Run terrafrom commands to automatically provision and configure Prometheus, Grafana and Alertmanager
+    ```
+    terraform init
+    terraform apply
+    ```
+
+6. Check workload in `monitoring` namespace of `minikube` cluster:
+
+    `kubectl get all -n monitoring`
+
+7. Get password for Grafana:
+    `echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"`  
+
+8. Configure port-forwarding to access Prometheus and Grafana:
+    ```
+    kubectl port-forward -n monitoring svc/prometheus-server 9090:9090
+    kubectl port-forward -n monitoring svc/grafana 3000:3000
+    ```
+
+9.  Grafana will be available in the browser on address `http://localhost:3000`
+
+    Prometheus will be available in the browser on address `http://localhost:9090`
+
+**Clean up**
+1. Uninstall Prometheus, Grafana and Alertmanager via terraform
+
+    `terraform destroy`
+
+2. Stop minikube cluster
+
+    `minikube stop`
+
+3. *Optional:* Delete minikube cluster
+
+
+    `minikube delete`    
+______________________________________________________________________________
+
+
 ## TASK 6
 
 ### Prerequisites

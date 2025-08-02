@@ -1,3 +1,126 @@
+TASK 7
+
+https://www.opsramp.com/guides/prometheus-monitoring/prometheus-node-exporter/
+https://spacelift.io/blog/kube-state-metrics
+
+https://blog.devops.dev/part-1-setup-prometheus-kube-state-metrics-and-integrate-grafana-with-kubernetes-6c21f60d167f
+https://blog.devops.dev/part-2-setup-prometheus-kube-state-metrics-and-integrate-grafana-with-kubernetes-4a91bf5bee29
+
+https://victoriametrics.com/blog/alerting-recording-rules-alertmanager/
+
+https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+https://prometheus.io/docs/alerting/latest/overview/
+https://prometheus.io/docs/alerting/latest/configuration/
+https://github.com/prometheus/alertmanager/blob/main/doc/examples/simple.yml
+https://prometheus.io/docs/prometheus/latest/configuration/configuration/#alertmanager_config
+https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/
+https://prometheus.io/docs/alerting/latest/alertmanager/
+
+https://www.opsramp.com/guides/prometheus-monitoring/prometheus-alerting/
+https://monitoring.mixins.dev/prometheus/
+https://monitoring.mixins.dev/alertmanager/
+https://monitoring.mixins.dev/node-exporter/
+https://monitoring.mixins.dev/kube-state-metrics/
+https://monitoring.mixins.dev/kubernetes/
+https://samber.github.io/awesome-prometheus-alerts/rules#prometheus-self-monitoring
+
+
+minikube start --driver=virtualbox --cpus=8 --memory=8g
+minikube addons enable default-storageclass
+minikube addons enable storage-provisioner
+minikube addons enable metrics-server
+
+
+# minikube addons enable ingress
+# minikube addons enable registry
+
+minikube addons enable metrics-server
+
+minikube ssh
+#sudo mkdir -p /bitnami/alertmanager/data
+#sudo mkdir -p /bitnami/prometheus/data
+#sudo mkdir -p /bitnami/grafana/
+
+#sudo mkdir -p /bitnami
+#sudo chown -R 1001:1001 /bitnami
+
+# kubectl create ns monitoring
+
+# kubectl create secret generic datasource-secret -n monitoring --from-file=datasource-secret.yaml
+# kubectl create configmap my-dashboard-1 -n monitoring --from-file=my-dashboard-1.json
+# kubectl create configmap my-dashboard-2 -n monitoring --from-file=my-dashboard-2.json
+
+
+terraform init
+terraform validate
+terraform plan
+terraform apply
+
+kubectl port-forward -n monitoring svc/prometheus-server 9090:9090
+kubectl port-forward -n monitoring svc/grafana 3000:3000
+
+echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
+
+echo "Password: $(kubectl get secret grafana-admin --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
+echo "Password: $(kubectl get secret grafana-admin-password --namespace monitoring -o jsonpath="{.data.GF_SECURITY_ADMIN_PASSWORD}" | base64 -d)"
+
+Example PromQL Expressions
+The following PromQL expressions are example metrics and their meanings:
+
+Metric
+
+The per-second average amount of CPU time spent in system mode, over the last 10 minutes (seconds)
+rate(node_cpu_seconds_total{mode="system"}[10m])	
+
+Total filesystem space obtainable to users other than superuser (bytes)
+node_filesystem_avail_bytes
+
+The per-second average network traffic received, over the last 10 minutes (in bytes)
+rate(node_network_receive_bytes_total[10m])
+
+number of Pods currently scheduled to each Node in your Kubernetes cluster
+sum(kube_pod_info) by (node)
+
+number of ready pods in each namespace:
+sum by (namespace) (kube_pod_status_ready)
+
+Find pods that have restarted, including their namespaces:
+sum(kube_pod_container_status_restarts_total) by (namespace, pod) > 0
+
+Get the number of pod replicas available for each deployment in a specific namespace:
+sum(kube_deployment_status_replicas_available{namespace="monitoring"}) by (deployment)
+
+Check changes in a deployment’s replica count over the past 5 minutes:
+kube_deployment_status_replicas_available{deployment="monitoring"}[5m]
+
+List images and how many containers use them:
+sum by (image) (kube_pod_container_info)
+
+Get the last scheduled time for each CronJob in a namespace:
+max(kube_cronjob_status_last_schedule_time{namespace="monitoring"}) by (cronjob)
+
+Get the Persistent Volumes using a specific storage class:
+count(kube_persistentvolume_info{storageclass="monitoring"}) by (persistentvolume)
+
+Find how many pods have been created in a namespace in the past day:
+count(increase(kube_pod_created{namespace="monitoring"}[1d]))
+
+Get the top three namespaces with the most new pods created in the past day:
+topk(3, count by (namespace) (increase(kube_pod_created[1d])))
+
+Get the number of successful completions for each job in a namespace:
+sum by (job_name) (kube_job_spec_completions{namespace="demo-namespace"})
+
+
+According to my Grafana dashboard, the following metrics work nicely for alerting for available space,
+
+100 - ((node_filesystem_avail_bytes{mountpoint="/",fstype!="rootfs"} * 100) / node_filesystem_size_bytes{mountpoint="/",fstype!="rootfs"})
+
+The formula gives out the percentage of available space on the pointed disk. Make sure you include the mountpoint and fstype within the metrics.
+
+
+________________________________________________
+
 TO READ:
 
 https://polarsquad.com/blog/check-your-helm-deployments

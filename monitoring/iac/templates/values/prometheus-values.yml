@@ -1,0 +1,390 @@
+alertmanager:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: bitnami/alertmanager
+    tag: 0.28.1-debian-12-r13
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+
+  extraVolumes:
+    - name: smtp-auth-password-volume
+      secret:
+        secretName: smtp-auth
+        items:
+          - key: GF_SMTP_PASSWORD
+            path: smtp-auth-password
+
+  extraVolumeMounts:
+    - name: smtp-auth-password-volume
+      readOnly: true
+      mountPath: /run/secrets
+
+  configuration: |
+    global:
+      smtp_from: jenkins.notify.lerkasan@gmail.com
+      smtp_smarthost: smtp4dev.monitoring.svc.cluster.local:25
+      smtp_auth_username: jenkins.notify.lerkasan@gmail.com
+      smtp_auth_password_file: /run/secrets/smtp-auth-password
+      smtp_require_tls: false
+    receivers:
+      - name: devops
+        email_configs:
+          - to: jenkins.notify.lerkasan@gmail.com      
+    route:
+      group_wait: 10s
+      group_interval: 5m
+      receiver: devops
+      repeat_interval: 1h
+      group_by: [alertname]
+      routes:
+        - receiver: devops
+          group_by: [alertname]
+          matchers:
+            - team="devops"
+
+  replicaCount: 1
+
+  containerPorts:
+    http: 9093
+    cluster: 9094
+
+  resourcesPreset: "medium"  # (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge)
+  ## @param alertmanager.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+  ## Example:
+  ## resources:
+  ##   requests:
+  ##     cpu: 2
+  ##     memory: 512Mi
+  ##   limits:
+  ##     cpu: 3
+  ##     memory: 1024Mi
+  ##
+  resources: {}
+ 
+  service:
+    type: ClusterIP
+    ports:
+      http: 9093
+      cluster: 9094
+  
+  persistence:
+    enabled: true
+    mountPath: /bitnami/alertmanager/data
+    subPath: ""
+    storageClass: ""
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    annotations: {}
+    selector: {}
+
+server:
+  image:
+    registry: docker.io
+    repository: bitnami/prometheus
+    tag: 3.5.0-debian-12-r1
+    digest: ""
+    pullPolicy: IfNotPresent
+    pullSecrets: []
+  
+  scrapePrometheusHost: true
+  scrapeAlertmanagerHost: true
+
+  scrapeInterval: "15s"
+  scrapeTimeout: "10s"
+  evaluationInterval: "15s"
+
+
+  ## @param server.configuration [string] Promethus configuration. This content will be stored in the the prometheus.yaml file and the content can be a template.
+  ## ref: <https://github.com/prometheus-community/helm-charts/blob/main/charts/prometheus/values.yaml>
+  ##
+  configuration: |
+    global:
+      {{- if .Values.server.scrapeInterval }}
+      scrape_interval: {{ .Values.server.scrapeInterval }}
+      {{- end }}
+      {{- if .Values.server.scrapeTimeout }}
+      scrape_timeout: {{ .Values.server.scrapeTimeout }}
+      {{- end }}
+      {{- if .Values.server.evaluationInterval }}
+      evaluation_interval: {{ .Values.server.evaluationInterval }}
+      {{- end }}
+      external_labels:
+        monitor: {{ template "common.names.fullname" . }}
+        {{- if .Values.server.externalLabels }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.server.externalLabels "context" $) | nindent 4 }}
+        {{- end }}
+    {{- if .Values.server.remoteWrite }}
+    remote_write: {{- include "common.tplvalues.render" (dict "value" .Values.server.remoteWrite "context" $) | nindent 4 }}
+    {{- end }}
+    scrape_configs:
+    {{- if .Values.server.scrapePrometheusHost }}
+      - job_name: prometheus
+      {{- include "prometheus.scrape_config" (dict "component" "server" "context" $) | nindent 4 }}
+    {{- end }}
+    {{- if and .Values.alertmanager.enabled .Values.server.scrapeAlertmanagerHost }}
+      - job_name: alertmanager
+        {{- include "prometheus.scrape_config" (dict "component" "alertmanager" "context" $) | nindent 4 }}
+    {{- end }}
+    {{- if .Values.server.extraScrapeConfigs}}
+    {{- include "common.tplvalues.render" (dict "value" .Values.server.extraScrapeConfigs "context" $) | nindent 2 }}
+    {{- end }}
+    {{- if or .Values.alertmanager.enabled .Values.server.alertingEndpoints}}
+    alerting:
+      alertmanagers:
+        {{- if .Values.server.alertingEndpoints }}
+        {{- include "common.tplvalues.render" (dict "value" .Values.server.alertingEndpoints "context" $) | nindent 4 }}
+        {{- end }}
+        - scheme: HTTP
+          static_configs:
+            - targets: [ "{{ printf "%s.%s.svc.%s:%d" (include "prometheus.alertmanager.fullname" .) (include "common.names.namespace" .) .Values.clusterDomain (int .Values.alertmanager.service.ports.http) }}" ]
+    rule_files:
+      - rules.yaml
+    {{- end }}
+
+  ## @param server.alertingRules Prometheus alerting rules. This content will be stored in the the rules.yaml file and the content can be a template.
+  ## ref: <https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/>
+  ##
+  ## here I need to user {{ "{{" }} and {{ "}}" }} instead of {{ and }} to avoid rendering issues of the helm template containing alerting templates.
+  ## Otherwise I would get an error: prometheus/charts/common/templates/_tplvalues.tpl:19:8: executing "common.tplvalues.render" at <tpl $value .context>: error calling tpl: cannot parse template
+  alertingRules:
+    groups:
+      - name: node-memory-usage
+        labels:
+          team: devops
+        rules:
+          - alert: Out Of Memory
+            expr: (100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 10)
+            for: 2m
+            keep_firing_for: 5m
+            labels:
+              severity: high
+            annotations:
+              summary: 'Node {{ "{{" }} $labels.instance {{ "}}" }} is running out of memory.'
+              description: 'Memory is critically low (< 10% left) on {{ "{{" }} $labels.instance {{ "}}" }}. Free memory left: {{ "{{" }} printf "%.2f" $value {{ "}}" }}%.'
+          - alert: High Memory Usage
+            annotations:
+              description: |
+                'Node {{ "{{" }} $labels.instance {{ "}}" }} is experiencing high memory usage above 80% for the last 5 minutes. Currently memory usage is at {{ "{{" }} printf "%.2f" $value {{ "}}" }}%.'
+              summary: 'Node {{ "{{" }} $labels.instance {{ "}}" }} has high memory usage.'
+            expr: |
+              100 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes * 100) > 80
+            for: 5m
+            keep_firing_for: 5m
+            labels:
+              severity: high            
+      - name: node-cpu-usage
+        labels:
+          team: devops
+        rules:
+          - alert: High CPU Usage 
+            annotations:
+              description: |
+                'CPU usage at {{ "{{" }} $labels.instance {{ "}}" }} has been above 80% for the last 5 minutes, is currently at {{ "{{" }} printf "%.2f" $value {{ "}}" }}%.'
+              summary: 'High CPU usage at {{ "{{" }} $labels.instance {{ "}}" }}.'
+            expr: |
+              sum without(mode) (avg without (cpu) (rate(node_cpu_seconds_total{mode!~"idle|iowait"}[2m]))) * 100 > 80
+            for: 5m
+            keep_firing_for: 5m
+            labels:
+              severity: high
+
+  ## @param server.extraScrapeConfigs Promethus configuration, useful to declare new scrape_configs. This content will be merged with the 'server.configuration' value and stored in the the prometheus.yaml file.
+  ## ref: <https://prometheus.io/docs/prometheus/latest/configuration/configuration/#scrape_config>
+  ##
+  extraScrapeConfigs:
+    - job_name: node-exporter
+      static_configs:
+        - targets: ['node-exporter.monitoring.svc.cluster.local:9100']
+    - job_name: "kube-state-metrics"
+      honor_timestamps: true
+      metrics_path: /metrics
+      scheme: http    
+      static_configs:
+        - targets: ["kube-state-metrics.kube-system.svc.cluster.local:8080"]
+      metric_relabel_configs:
+        - target_label: cluster
+          replacement: minikube
+    - job_name: kubernetes-nodes-cadvisor
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      kubernetes_sd_configs:
+        - role: node
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+      metric_relabel_configs:
+        - action: replace
+          source_labels: [id]
+          regex: '^/machine\.slice/machine-rkt\\x2d([^\\]+)\\.+/([^/]+)\.service$'
+          target_label: rkt_container_name
+          replacement: '${2}-${1}'
+        - action: replace
+          source_labels: [id]
+          regex: '^/system\.slice/(.+)\.service$'
+          target_label: systemd_service_name
+          replacement: '${1}'
+    - job_name: 'kubernetes-apiservers'
+      kubernetes_sd_configs:
+        - role: endpoints
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_namespace, __meta_kubernetes_service_name, __meta_kubernetes_endpoint_port_name]
+          action: keep
+          regex: default;kubernetes;https
+    - job_name: 'kubernetes-nodes'
+      kubernetes_sd_configs:
+        - role: node
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics
+    - job_name: 'kubernetes-pods'
+      kubernetes_sd_configs:
+        - role: pod
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+          action: replace
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+          target_label: __address__
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          action: replace
+          target_label: kubernetes_pod_name
+    - job_name: 'kubernetes-service-endpoints'
+      kubernetes_sd_configs:
+        - role: endpoints
+      relabel_configs:
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scrape]
+          action: keep
+          regex: true
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_scheme]
+          action: replace
+          target_label: __scheme__
+          regex: (https?)
+        - source_labels: [__meta_kubernetes_service_annotation_prometheus_io_path]
+          action: replace
+          target_label: __metrics_path__
+          regex: (.+)
+        - source_labels: [__address__, __meta_kubernetes_service_annotation_prometheus_io_port]
+          action: replace
+          target_label: __address__
+          regex: ([^:]+)(?::\d+)?;(\d+)
+          replacement: $1:$2
+        - action: labelmap
+          regex: __meta_kubernetes_service_label_(.+)
+        - source_labels: [__meta_kubernetes_namespace]
+          action: replace
+          target_label: kubernetes_namespace
+        - source_labels: [__meta_kubernetes_service_name]
+          action: replace
+          target_label: kubernetes_name
+    - job_name: 'kubernetes-cadvisor'
+      scheme: https
+      tls_config:
+        ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+      bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+      kubernetes_sd_configs:
+        - role: node
+      relabel_configs:
+        - action: labelmap
+          regex: __meta_kubernetes_node_label_(.+)
+        - target_label: __address__
+          replacement: kubernetes.default.svc:443
+        - source_labels: [__meta_kubernetes_node_name]
+          regex: (.+)
+          target_label: __metrics_path__
+          replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+                           
+  resourcesPreset: "medium"  # (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge)
+  ## @param server.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+  ## Example:
+  ## resources:
+  ##   requests:
+  ##     cpu: 2
+  ##     memory: 512Mi
+  ##   limits:
+  ##     cpu: 3
+  ##     memory: 1024Mi
+  ##
+  resources: {}
+
+  podSecurityContext:
+    enabled: true
+    fsGroupChangePolicy: Always
+    sysctls: []
+    supplementalGroups: []
+    fsGroup: 1001
+
+  containerSecurityContext:
+    enabled: true
+    seLinuxOptions: {}
+    runAsUser: 1001
+    runAsGroup: 1001
+    runAsNonRoot: true
+    privileged: false
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+    seccompProfile:
+      type: "RuntimeDefault"
+
+  service:
+    type: ClusterIP
+    ports:
+      http: 9090
+
+  persistence:
+    enabled: true
+    mountPath: /bitnami/prometheus/data
+    subPath: ""
+    storageClass: ""
+    annotations: {}
+    accessModes:
+      - ReadWriteOnce
+    size: 8Gi
+    existingClaim: ""
+
+## 'volumePermissions' init container parameters
+## Changes the owner and group of the persistent volume mount point to runAsUser:fsGroup values
+##   based on the *podSecurityContext/*containerSecurityContext parameters
+##
+volumePermissions:
+  ## @param volumePermissions.enabled Enable init container that changes the owner/group of the PV mount point to `runAsUser:fsGroup`
+  ##
+  enabled: false

@@ -1,0 +1,87 @@
+clusterDomain: cluster.local
+
+image:
+  registry: docker.io
+  repository: bitnami/grafana
+  tag: 12.0.2-debian-12-r3
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+admin:
+  user: admin
+  existingSecret: grafana-admin-password
+  existingSecretPasswordKey: GF_SECURITY_ADMIN_PASSWORD
+
+smtp:
+
+  enabled: true
+  # host: smtp.gmail.com:587
+  host: smtp4dev.monitoring.svc.cluster.local:25
+  fromAddress: jenkins.notify.lerkasan@gmail.com
+  fromName: "Grafana Notifications"
+  skipVerify: true
+  existingSecret: smtp-auth
+  existingSecretUserKey: GF_SMTP_USER
+  existingSecretPasswordKey: GF_SMTP_PASSWORD
+
+dashboardsProvider:
+  enabled: true
+  configMapName: "grafana-dashboard-provider"
+
+dashboardsConfigMaps:
+  - configMapName: grafana-dashboard-1860-rev41
+    fileName: 1860-rev41.json
+  - configMapName: grafana-dashboard-9578-rev4
+    fileName: 9578-rev4.json
+
+datasources:
+  secretName: "grafana-datasources-secret"
+
+notifiers:
+  configMapName: ""
+
+alerting:
+  configMapName: "grafana-alerting"
+
+  resourcesPreset: "medium"  # (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge)
+  ## @param grafana.resources Set container requests and limits for different resources like CPU or memory (essential for production workloads)
+  ## Example:
+  ## resources:
+  ##   requests:
+  ##     cpu: 2
+  ##     memory: 512Mi
+  ##   limits:
+  ##     cpu: 3
+  ##     memory: 1024Mi
+  ##
+  resources: {}
+
+persistence:
+  enabled: true
+  storageClass: ""
+  annotations: {}
+  existingClaim: ""
+  accessMode: ReadWriteOnce
+  accessModes: []
+  size: 10Gi
+
+service:
+  type: ClusterIP
+  clusterIP: ""
+  ports:
+    grafana: 3000
+  
+ingress:
+  enabled: false
+ 
+## Prometheus metrics
+metrics:
+
+  enabled: false
+  service:
+    annotations:
+      prometheus.io/scrape: "true"
+      prometheus.io/port: "3000"
+      prometheus.io/path: "/metrics"
+

@@ -1,0 +1,14 @@
+image:
+  registry: docker.io
+  repository: bitnami/kube-state-metrics
+  tag: 2.16.0-debian-12-r2
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+service:
+  type: ClusterIP
+  ports:
+    http: 8080
+
+resourcesPreset: "nano"
